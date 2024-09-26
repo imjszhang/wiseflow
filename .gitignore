@@ -13,3 +13,5 @@ core/pb/pocketbase
 core/work_dir/
 /work_dir
 core/pb/pocketbase.exe
+dashboard/dify_api_config.py
+dashboard/work_dir/

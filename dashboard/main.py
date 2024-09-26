@@ -44,16 +44,6 @@ def read_root():
     return {"msg": msg}
 
 
-@app.post("/translations")
-def translate_all_articles(request: TranslateRequest):
-    return bs.translate(request.article_ids)
-
-
-@app.post("/search_for_insight")
-def add_article_from_insight(request: ReportRequest):
-    return bs.more_search(request.insight_id)
-
-
 @app.post("/report")
-def report(request: ReportRequest):
-    return bs.report(request.insight_id, request.toc, request.comment)
+async def report(request: ReportRequest):
+    return await bs.report(request.insight_id, request.toc, request.comment)

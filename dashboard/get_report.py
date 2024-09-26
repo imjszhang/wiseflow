@@ -1,7 +1,7 @@
 import random
 import re
 import os
-from core.backend import dashscope_llm
+import json
 from docx import Document
 from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
@@ -11,6 +11,9 @@ from general_utils import isChinesePunctuation
 from general_utils import get_logger_level
 from loguru import logger
 from pb_api import PbTalker
+from dify import call_dify_app_async
+from dify_api_config import DIFY_API_KEY
+
 
 project_dir = os.environ.get("PROJECT_DIR", "")
 os.makedirs(project_dir, exist_ok=True)
@@ -29,7 +32,9 @@ pb = PbTalker(logger)
 # qwen-72b-chat支持最大30k输入，考虑prompt其他部分，content不应超过30000字符长度
 # 如果换qwen-max（最大输入6k),这里就要换成6000,但这样很多文章不能分析了
 # 本地部署模型（qwen-14b这里可能仅支持4k输入，可能根本这套模式就行不通）
+
 max_input_tokens = 30000
+"""
 role_config = pb.read(collection_name='roleplays', filter=f'activated=True')
 _role_config_id = ''
 if role_config:
@@ -49,9 +54,12 @@ if not _role_config_id:
 if not report_type:
     report_type = input('\033[0;32m 请为首席情报官指定报告类型（eg. 网络安全情报）：\033[0m\n')
     _ = pb.update(collection_name='roleplays', id=_role_config_id, body={'report_type': report_type})
+"""
+character = '来自中国的网络安全情报专家'
+report_type = '网络安全情报'
 
 
-def get_report(insigt: str, articles: list[dict], memory: str, topics: list[str], comment: str, docx_file: str) -> (bool, str):
+async def get_report(insigt: str, articles: list[dict], memory: str, topics: list[str], comment: str, docx_file: str):
     zh_index = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
 
     if isChinesePunctuation(insigt[-1]):
@@ -121,15 +129,19 @@ def get_report(insigt: str, articles: list[dict], memory: str, topics: list[str]
     check_list = [_[1:] for _ in check_list if _.startswith('【')]
     result = ''
     for i in range(2):
-        result = dashscope_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}],
-                               'qwen1.5-72b-chat', seed=random.randint(1, 10000), logger=logger)
+        #result = dashscope_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}],
+                               #'qwen1.5-72b-chat', seed=random.randint(1, 10000), logger=logger)
+        inputs = json.dumps({"system_prompt":system_prompt}) 
+        result,conversation_id = await call_dify_app_async(DIFY_API_KEY['gpt4o-mini'], user_prompt, '', inputs, '', 'blocking')
         logger.debug(f"raw result:\n{result}")
         if len(result) > 50:
             check_flag = True
+            
             for check_item in check_list[2:]:
                 if check_item not in result:
                     check_flag = False
                     break
+            
         if check_flag:
             break
 
