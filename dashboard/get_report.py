@@ -131,7 +131,7 @@ async def get_report(insigt: str, articles: list[dict], memory: str, topics: lis
     for i in range(2):
         #result = dashscope_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': user_prompt}],
                                #'qwen1.5-72b-chat', seed=random.randint(1, 10000), logger=logger)
-        inputs = json.dumps({"system_prompt":system_prompt}) 
+        inputs = json.dumps({"system":system_prompt}) 
         result,conversation_id = await call_dify_app_async(DIFY_API_KEY['gpt4o-mini'], user_prompt, '', inputs, '', 'blocking')
         logger.debug(f"raw result:\n{result}")
         if len(result) > 50:
