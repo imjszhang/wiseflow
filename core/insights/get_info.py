@@ -1,4 +1,5 @@
 from llms.openai_wrapper import openai_llm
+from llms.dify_wrapper import dify_llm
 # from llms.siliconflow_wrapper import sfa_llm
 import re
 from utils.general_utils import get_logger_level, is_chinese
@@ -84,8 +85,11 @@ Please be sure to: 1. Strictly adhere to the original text and do not provide in
 
 def get_info(article_content: str) -> list[dict]:
     # logger.debug(f'receive new article_content:\n{article_content}')
-    result = openai_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': article_content}],
-                        model=get_info_model, logger=logger, temperature=0.1)
+    #result = openai_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': article_content}],
+                        #model=get_info_model, logger=logger, temperature=0.1)
+    inputs={'system': system_prompt}
+    response = dify_llm(article_content, 'wiseflow', inputs=inputs, logger=logger)
+    result = response['answer']
 
     # results = pattern.findall(result)
     texts = result.split('<tag>')
@@ -140,8 +144,11 @@ def get_info(article_content: str) -> list[dict]:
 def info_rewrite(contents: list[str]) -> str:
     context = f"<content>{'</content><content>'.join(contents)}</content>"
     try:
-        result = openai_llm([{'role': 'system', 'content': rewrite_prompt}, {'role': 'user', 'content': context}],
-                            model=rewrite_model, temperature=0.1, logger=logger)
+        #result = openai_llm([{'role': 'system', 'content': rewrite_prompt}, {'role': 'user', 'content': context}],
+        #                    model=rewrite_model, temperature=0.1, logger=logger)
+        inputs={'system': rewrite_prompt}
+        response = dify_llm(context, 'wiseflow', inputs=inputs, logger=logger)
+        result = response['answer']        
         return result.strip()
     except Exception as e:
         if logger:
