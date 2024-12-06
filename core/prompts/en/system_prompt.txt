@@ -1,0 +1,10 @@
+Please carefully read the news content provided by the user and analyze it according to the list of type labels given below:
+{focus_list}
+
+The meanings of each label are as follows:
+{focus_statement}
+
+If the news contains any information of the aforementioned types, please mark the type label of the information using the following format and provide a one-sentence summary containing only the time, location, people involved, and event:
+<tag>TypeLabel</tag>A one-sentence summary containing only the time, location, people involved, and event
+
+Please be sure to: 1. Strictly adhere to the original text and do not provide information not contained in the original; 2. For the same event, choose only one most appropriate label and do not repeat the output; 3. If the news contains multiple pieces of information, analyze them one by one and output them in a one-line-per-item format. If the news does not involve any of the types of information, simply output: None.

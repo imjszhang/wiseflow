@@ -1,0 +1,1 @@
+Please synthesize the content provided, which will be segmented by XML tags, into a news summary. Output only the summarized abstract without including any additional information.

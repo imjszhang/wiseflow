@@ -1,12 +1,11 @@
 from llms.openai_wrapper import openai_llm
 from llms.dify_wrapper import dify_llm
-# from llms.siliconflow_wrapper import sfa_llm
 import re
-from utils.general_utils import get_logger_level, is_chinese
-from loguru import logger
-from utils.pb_api import PbTalker
 import os
-
+from loguru import logger
+from utils.general_utils import get_logger_level, is_chinese
+from utils.pb_api import PbTalker
+from utils.prompt_utils import load_prompt_template
 
 get_info_model = os.environ.get("GET_INFO_MODEL", "gpt-4o-mini-2024-07-18")
 rewrite_model = os.environ.get("REWRITE_MODEL", "gpt-4o-mini-2024-07-18")
@@ -36,102 +35,103 @@ focus_dict = {item["name"]: item["id"] for item in focus_data if item["name"]}
 lang_term = ''.join([f'{item["name"]}{item["explaination"]}' for item in focus_data if item["name"]])
 focus_statement = '\n'.join([f'<tag>{item["name"]}</tag>{item["explaination"]}' for item in focus_data if item["name"] and item["explaination"]])
 
-if is_chinese(lang_term):
-    if focus_statement:
-        system_prompt = f'''请仔细阅读用户输入的新闻内容，并根据所提供的类型标签列表进行分析。类型标签列表如下：
-{focus_list}
+# 定义模板文件路径
+PROMPT_DIR = "prompts"
+language = "zh" if is_chinese(lang_term) else "en"
+PROMPT_DIR = os.path.join(PROMPT_DIR, language)
 
-各标签的含义如下：
-{focus_statement}
+SYSTEM_PROMPT_FILE = os.path.join(PROMPT_DIR, "system_prompt.txt")
+REWRITE_PROMPT_FILE = os.path.join(PROMPT_DIR, "rewrite_prompt.txt")
 
-如果新闻中包含上述任何类型的信息，请使用以下格式标记信息的类型标签，并提供仅包含时间、地点、人物和事件的一句话信息摘要：
-<tag>类型名称</tag>仅包含时间、地点、人物和事件的一句话信息摘要
+# 加载系统提示词
+try:
+    system_prompt = load_prompt_template(
+        SYSTEM_PROMPT_FILE,
+        focus_list="\n".join(focus_list),
+        focus_statement=focus_statement if focus_statement else "",
+    )
+    rewrite_prompt = load_prompt_template(REWRITE_PROMPT_FILE)
+except FileNotFoundError as e:
+    logger.error(f"Failed to load prompt templates: {e}")
+    exit(1)
 
-务必注意：1、严格忠于新闻原文，不得提供原文中不包含的信息；2、对于同一事件，仅选择一个最贴合的标签，不要重复输出；3、如果新闻中包含多个信息，请逐一分析并按一条一行的格式输出，如果新闻不涉及任何类型的信息，则直接输出：无。'''
+
+# 增加 LLM 选择逻辑
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # 默认使用 dify
+
+def select_llm():
+    """
+    根据环境变量选择 LLM 提供商。
+    """
+    if LLM_PROVIDER == "openai":
+        return openai_llm
+    elif LLM_PROVIDER == "dify":
+        return dify_llm
     else:
-        system_prompt = f'''请仔细阅读用户输入的新闻内容，并根据所提供的类型标签列表进行分析。类型标签列表如下：
-{focus_list}
+        raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
 
-如果新闻中包含上述任何类型的信息，请使用以下格式标记信息的类型标签，并提供仅包含时间、地点、人物和事件的一句话信息摘要：
-<tag>类型名称</tag>仅包含时间、地点、人物和事件的一句话信息摘要
+# 动态选择 LLM
+llm = select_llm()
 
-务必注意：1、严格忠于新闻原文，不得提供原文中不包含的信息；2、对于同一事件，仅选择一个最贴合的标签，不要重复输出；3、如果新闻中包含多个信息，请逐一分析并按一条一行的格式输出，如果新闻不涉及任何类型的信息，则直接输出：无。'''
-
-    rewrite_prompt = '''请综合给到的内容，提炼总结为一个新闻摘要。给到的内容会用XML标签分隔。请仅输出总结出的摘要，不要输出其他的信息。'''
-
-else:
-    if focus_statement:
-        system_prompt = f'''Please carefully read the news content provided by the user and analyze it according to the list of type labels given below:
-{focus_list}
-
-The meanings of each label are as follows:
-{focus_statement}
-
-If the news contains any information of the aforementioned types, please mark the type label of the information using the following format and provide a one-sentence summary containing only the time, location, people involved, and event:
-<tag>TypeLabel</tag>A one-sentence summary containing only the time, location, people involved, and event
-
-Please be sure to: 1. Strictly adhere to the original text and do not provide information not contained in the original; 2. For the same event, choose only one most appropriate label and do not repeat the output; 3. If the news contains multiple pieces of information, analyze them one by one and output them in a one-line-per-item format. If the news does not involve any of the types of information, simply output: None.'''
-    else:
-        system_prompt = f'''Please carefully read the news content provided by the user and analyze it according to the list of type labels given below:
-{focus_list}
-
-If the news contains any information of the aforementioned types, please mark the type label of the information using the following format and provide a one-sentence summary containing only the time, location, people involved, and event:
-<tag>TypeLabel</tag>A one-sentence summary containing only the time, location, people involved, and event
-
-Please be sure to: 1. Strictly adhere to the original text and do not provide information not contained in the original; 2. For the same event, choose only one most appropriate label and do not repeat the output; 3. If the news contains multiple pieces of information, analyze them one by one and output them in a one-line-per-item format. If the news does not involve any of the types of information, simply output: None.'''
-
-    rewrite_prompt = "Please synthesize the content provided, which will be segmented by XML tags, into a news summary. Output only the summarized abstract without including any additional information."
-
-
+# 修改 get_info 函数
 def get_info(article_content: str) -> list[dict]:
-    # logger.debug(f'receive new article_content:\n{article_content}')
-    #result = openai_llm([{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': article_content}],
-                        #model=get_info_model, logger=logger, temperature=0.1)
-    inputs={'system': system_prompt}
-    response = dify_llm(article_content, 'wiseflow', inputs=inputs, logger=logger)
-    result = response['answer']
+    inputs = {'system': system_prompt}
+    try:
+        if LLM_PROVIDER == "openai":
+            # OpenAI LLM 调用
+            result = llm(
+                [{'role': 'system', 'content': system_prompt}, {'role': 'user', 'content': article_content}],
+                model=get_info_model,
+                logger=logger,
+                temperature=0.1
+            )
+        elif LLM_PROVIDER == "dify":
+            # Dify LLM 调用
+            response = llm(article_content, 'wiseflow', inputs=inputs, logger=logger)
+            result = response['answer']
+        else:
+            raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
+    except Exception as e:
+        logger.error(f"Error during LLM call: {e}")
+        return []
 
-    # results = pattern.findall(result)
+    # 解析结果
     texts = result.split('<tag>')
     texts = [_.strip() for _ in texts if '</tag>' in _.strip()]
     if not texts:
-        logger.debug(f'can not find info, llm result:\n{result}')
+        logger.debug(f'Cannot find info, LLM result:\n{result}')
         return []
 
     cache = []
     for text in texts:
         try:
             strings = text.split('</tag>')
-            tag = strings[0]
-            tag = tag.strip()
+            tag = strings[0].strip()
             if tag not in focus_list:
-                logger.info(f'tag not in focus_list: {tag}, aborting')
+                logger.info(f'Tag not in focus_list: {tag}, aborting')
                 continue
-            info = strings[1]
-            info = info.split('\n\n')
-            info = info[0].strip()
+            info = strings[1].split('\n\n')[0].strip()
         except Exception as e:
-            logger.info(f'parse error: {e}')
+            logger.info(f'Parse error: {e}')
             tag = ''
             info = ''
 
         if not info or not tag:
-            logger.info(f'parse failed-{text}')
+            logger.info(f'Parse failed-{text}')
             continue
 
         if len(info) < 7:
-            logger.info(f'info too short, possible invalid: {info}')
+            logger.info(f'Info too short, possible invalid: {info}')
             continue
 
         if info.startswith('无相关信息') or info.startswith('该新闻未提及') or info.startswith('未提及'):
-            logger.info(f'no relevant info: {text}')
+            logger.info(f'No relevant info: {text}')
             continue
 
         while info.endswith('"'):
-            info = info[:-1]
-            info = info.strip()
+            info = info[:-1].strip()
 
-        # 拼接下来源信息
+        # 拼接来源信息
         sources = re.findall(r'\[from (.*?)]', article_content)
         if sources and sources[0]:
             info = f"[from {sources[0]}] {info}"
@@ -140,19 +140,26 @@ def get_info(article_content: str) -> list[dict]:
 
     return cache
 
-
+# 修改 info_rewrite 函数
 def info_rewrite(contents: list[str]) -> str:
     context = f"<content>{'</content><content>'.join(contents)}</content>"
     try:
-        #result = openai_llm([{'role': 'system', 'content': rewrite_prompt}, {'role': 'user', 'content': context}],
-        #                    model=rewrite_model, temperature=0.1, logger=logger)
-        inputs={'system': rewrite_prompt}
-        response = dify_llm(context, 'wiseflow', inputs=inputs, logger=logger)
-        result = response['answer']        
+        if LLM_PROVIDER == "openai":
+            # OpenAI LLM 调用
+            result = llm(
+                [{'role': 'system', 'content': rewrite_prompt}, {'role': 'user', 'content': context}],
+                model=rewrite_model,
+                temperature=0.1,
+                logger=logger
+            )
+        elif LLM_PROVIDER == "dify":
+            # Dify LLM 调用
+            inputs = {'system': rewrite_prompt}
+            response = llm(context, 'wiseflow', inputs=inputs, logger=logger)
+            result = response['answer']
+        else:
+            raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
         return result.strip()
     except Exception as e:
-        if logger:
-            logger.warning(f'rewrite process llm generate failed: {e}')
-        else:
-            print(f'rewrite process llm generate failed: {e}')
+        logger.warning(f"Rewrite process LLM generate failed: {e}")
         return ''
