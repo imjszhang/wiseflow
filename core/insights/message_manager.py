@@ -1,4 +1,4 @@
-from .get_info import logger,pb
+from .get_insight import logger,pb
 from .pipeline import pipeline
 from utils.general_utils import extract_urls
 import re

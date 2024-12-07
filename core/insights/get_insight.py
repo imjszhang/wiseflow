@@ -73,8 +73,8 @@ def select_llm():
 # 动态选择 LLM
 llm = select_llm()
 
-# 修改 get_info 函数
-def get_info(article_content: str) -> list[dict]:
+# get_insights 函数
+def get_insights(article_content: str) -> list[dict]:
     inputs = {'system': system_prompt}
     try:
         if LLM_PROVIDER == "openai":
@@ -140,8 +140,8 @@ def get_info(article_content: str) -> list[dict]:
 
     return cache
 
-# 修改 info_rewrite 函数
-def info_rewrite(contents: list[str]) -> str:
+# insight_rewrite 函数
+def insight_rewrite(contents: list[str]) -> str:
     context = f"<content>{'</content><content>'.join(contents)}</content>"
     try:
         if LLM_PROVIDER == "openai":

@@ -1,6 +1,6 @@
 from typing import Dict
 from utils.general_utils import compare_phrase_with_list
-from .get_info import get_info, pb, project_dir, logger, info_rewrite
+from .get_insight import pb, project_dir, logger, get_insights, insight_rewrite
 from scrapers.general_crawler import general_crawler
 from datetime import datetime, timedelta
 import os
@@ -54,7 +54,7 @@ async def pipeline(url: str, cache: Dict[str, str] = {}):
                 json.dump(result, f, ensure_ascii=False, indent=4)
             continue
 
-        insights = get_info(f"title: {result['title']}\n\ncontent: {result['content']}")
+        insights = get_insights(f"title: {result['title']}\n\ncontent: {result['content']}")
         if not insights:
             continue
 
@@ -73,10 +73,10 @@ async def pipeline(url: str, cache: Dict[str, str] = {}):
             similar_insights = compare_phrase_with_list(insight['content'], list(old_insight_dict.keys()), 0.65)
             if similar_insights:
                 to_rewrite = similar_insights + [insight['content']]
-                new_info_content = info_rewrite(to_rewrite)
-                if not new_info_content:
+                new_insight_content = insight_rewrite(to_rewrite)
+                if not new_insight_content:
                     continue
-                insight['content'] = new_info_content
+                insight['content'] = new_insight_content
                 # Merge related articles and delete old insights
                 for old_insight in similar_insights:
                     insight['articles'].extend(old_insight_dict[old_insight]['articles'])

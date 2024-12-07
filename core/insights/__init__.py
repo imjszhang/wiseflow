@@ -1,5 +1,5 @@
 from .pipeline import pipeline
 from .message_manager import message_manager
-from .get_info import get_info, pb, project_dir, logger, info_rewrite
+from .get_insight import pb, project_dir, logger, get_insights, insight_rewrite
 
 
