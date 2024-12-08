@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 from datetime import datetime
 from urllib.parse import urlparse
 from llms.openai_wrapper import openai_llm
-# from llms.siliconflow_wrapper import sfa_llm
+from llms.dify_wrapper import dify_llm
 from bs4.element import Comment
 from utils.general_utils import extract_and_convert_dates
 import asyncio
@@ -22,12 +22,27 @@ from typing import Union
 from requests.compat import urljoin
 from scrapers import scraper_map
 
+# 动态选择 LLM 提供商
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # 默认使用 dify
+
+def select_llm():
+    """
+    根据环境变量选择 LLM 提供商。
+    """
+    if LLM_PROVIDER == "openai":
+        return openai_llm
+    elif LLM_PROVIDER == "dify":
+        return dify_llm
+    else:
+        raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
+
+# 动态选择 LLM
+llm = select_llm()
 
 model = os.environ.get('HTML_PARSE_MODEL', 'gpt-4o-mini-2024-07-18')
 header = {
         'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/604.1 Edg/112.0.100.0'}
 extractor = GeneralNewsExtractor()
-
 
 def tag_visible(element: Comment) -> bool:
     if element.parent.name in ["style", "script", "head", "title", "meta", "[document]"]:
@@ -35,7 +50,6 @@ def tag_visible(element: Comment) -> bool:
     if isinstance(element, Comment):
         return False
     return True
-
 
 def text_from_soup(soup: BeautifulSoup) -> str:
     res = []
@@ -45,7 +59,6 @@ def text_from_soup(soup: BeautifulSoup) -> str:
         res.append(v)
     text = "\n".join(res)
     return text.strip()
-
 
 sys_info = '''Your task is to operate as an HTML content extractor, focusing on parsing a provided HTML segment. Your objective is to retrieve the following details directly from the raw text within the HTML, without summarizing or altering the content:
 
@@ -64,7 +77,6 @@ Ensure your response fits the following JSON structure, accurately reflecting th
 ```
 
 It is essential that your output adheres strictly to this format, with each field filled based on the untouched information extracted directly from the HTML source.'''
-
 
 async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
     """
@@ -175,34 +187,38 @@ async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
             {"role": "system", "content": sys_info},
             {"role": "user", "content": html_text}
         ]
-        llm_output = openai_llm(messages, model=model, logger=logger, temperature=0.01)
-        result = json_repair.repair_json(llm_output, return_objects=True)
-        logger.debug(f"decoded_object: {result}")
 
-        if not isinstance(result, dict):
-            logger.debug("failed to parse from llm output")
+        try:
+            if LLM_PROVIDER == "openai":
+                # OpenAI LLM 调用
+                llm_output = llm(
+                    messages,
+                    model=model,
+                    logger=logger,
+                    temperature=0.01
+                )
+            elif LLM_PROVIDER == "dify":
+                # Dify LLM 调用
+                inputs = {'system': sys_info}
+                response = llm(html_text, 'html_parser', inputs=inputs, logger=logger)
+                llm_output = response['answer']
+            else:
+                raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
+
+            result = json_repair.repair_json(llm_output, return_objects=True)
+            logger.debug(f"decoded_object: {result}")
+
+            if not isinstance(result, dict):
+                logger.debug("failed to parse from llm output")
+                return 0, {}
+
+            if 'title' not in result or 'content' not in result:
+                logger.debug("llm parsed result not good")
+                return 0, {}
+
+        except Exception as e:
+            logger.error(f"Error during LLM call: {e}")
             return 0, {}
-
-        if 'title' not in result or 'content' not in result:
-            logger.debug("llm parsed result not good")
-            return 0, {}
-
-        # Extract the picture link, it will be empty if it cannot be extracted.
-        image_links = []
-        images = soup.find_all("img")
-        for img in images:
-            try:
-                image_links.append(urljoin(base_url, img["src"]))
-            except KeyError:
-                continue
-        result["images"] = image_links
-
-        # Extract the author information, if it cannot be extracted, it will be empty.
-        author_element = soup.find("meta", {"name": "author"})
-        if author_element:
-            result["author"] = author_element["content"]
-        else:
-            result["author"] = ""
 
     # 5. post process
     date_str = extract_and_convert_dates(result.get('publish_time', ''))
