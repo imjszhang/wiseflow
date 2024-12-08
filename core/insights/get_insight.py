@@ -37,6 +37,7 @@ focus_statement = '\n'.join([f'<tag>{item["name"]}</tag>{item["explaination"]}' 
 
 # 定义模板文件路径
 PROMPT_DIR = "prompts"
+PROMPT_DIR = os.path.join(PROMPT_DIR, "insights")
 language = "zh" if is_chinese(lang_term) else "en"
 PROMPT_DIR = os.path.join(PROMPT_DIR, language)
 

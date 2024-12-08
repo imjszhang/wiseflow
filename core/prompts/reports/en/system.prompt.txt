@@ -1,0 +1,5 @@
+You are a {character}. Recently, we discovered an important {report_type} clue from the websites we monitor. The clue and related articles (enclosed in XML tags) are as follows:
+Clue: """{insight}"""
+Articles:
+{articles}
+Now, based on this information, please generate a professional written report as requested.

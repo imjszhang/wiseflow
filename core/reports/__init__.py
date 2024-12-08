@@ -1,9 +1,8 @@
+from .get_report import pb, project_dir, logger, get_report
+
 import os
 import uuid
-from get_report import get_report, logger, pb
-
-
-class BackendService:
+class ReportService:
     def __init__(self):
         self.project_dir = os.environ.get("PROJECT_DIR", "")
         # 1. base initialization
@@ -62,3 +61,4 @@ class BackendService:
 
     def build_out(self, flag: int, answer: str = "") -> dict:
         return {"flag": flag, "result": [{"type": "text", "answer": answer}]}
+

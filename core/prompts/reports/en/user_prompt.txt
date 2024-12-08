@@ -1,0 +1,6 @@
+1. Regardless of the original language of the materials, you must output the report in English unless it involves names of people, organizations, or abbreviations;
+2. Statements of facts must be based on the provided articles, and you must not make assumptions;
+3. {comment}.
+
+Please format your report as follows:
+{schema}
