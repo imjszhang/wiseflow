@@ -228,10 +228,10 @@ export function getInsight(id) {
 export function getInsights(date) {
   if (!date) return []
 
-  const from = formatDate(date)
+  const from = formatDate(new Date(new Date(date + "T08:00:00").getTime()))
   //const to = formatDate(new Date(new Date(date + "T00:00:00" + LOCAL_TIME_OFFSITE).getTime() + 60 * 60 * 24 * 1000))
-  const to = formatDate(new Date(new Date(date + "T00:00:00").getTime() + 60 * 60 * 24 * 1000))
-  //  console.log("from/to", from, to)
+  const to = formatDate(new Date(new Date(date + "T08:00:00").getTime() + 60 * 60 * 24 * 1000))
+  console.log("from/to", from, to)
 
   const f = 'created >= "' + from + '" && created < "' + to + '"'
   // console.log(f)
