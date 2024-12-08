@@ -7,11 +7,11 @@ from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from datetime import datetime
-from general_utils import isChinesePunctuation
-from general_utils import get_logger_level
+from dashboard.utils.general_utils import isChinesePunctuation
+from dashboard.utils.general_utils import get_logger_level
 from loguru import logger
-from pb_api import PbTalker
-from dify import call_dify_app_async
+from dashboard.utils.pb_api import PbTalker
+from dashboard.utils.dify import call_dify_app_async
 from dify_api_config import DIFY_API_KEY
 
 
