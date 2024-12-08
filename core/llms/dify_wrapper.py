@@ -17,7 +17,7 @@ headers = {
     "Content-Type": "application/json"
 }
 
-def dify_llm(query: str, user: str, conversation_id: str = None, inputs: dict = None, response_mode: str = "blocking", logger=None, **kwargs) -> dict:
+def dify_llm(query: str, user: str = "wiseflow", conversation_id: str = None, inputs: dict = None, response_mode: str = "blocking", logger=None, **kwargs) -> dict:
     """
     调用 Dify API 发送对话消息并返回结果。
 

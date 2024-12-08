@@ -1,10 +1,14 @@
 from typing import Dict
 from utils.general_utils import compare_phrase_with_list
-from .get_insight import pb, project_dir, logger, get_insights, insight_rewrite
+from .get_insight import pb, logger, get_insights, insight_rewrite
 from scrapers.general_crawler import general_crawler
 from datetime import datetime, timedelta
+from config import CONFIG
 import os
 import json
+
+
+project_dir = CONFIG["PROJECT_DIR"]
 
 extensions = ('.pdf', '.docx', '.xlsx', '.doc', '.ppt', '.pptx', '.xls', '.txt', '.jpg', '.jpeg', '.png', '.gif', '.bmp',
               '.tiff', '.mp4', '.avi', '.wmv', '.mkv', '.flv', '.wav', '.mp3', '.avi', '.mov', '.wmv', '.mpeg', '.mpg',
