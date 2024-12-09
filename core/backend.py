@@ -55,8 +55,59 @@ def read_root():
     return {"msg": msg}
 
 
+
 @app.post("/feed")
 async def call_to_feed(background_tasks: BackgroundTasks, request: Request):
+    """
+    以下是一些可能的请求示例：
+    文本消息
+
+    JSON
+
+    {
+
+    "user_id": "user123",
+
+    "type": "text",
+
+    "content": "Check out this link: https://example.com",
+
+    "addition": "Some additional info"
+
+    }
+
+    公共消息
+
+    JSON
+
+    {
+
+    "user_id": "user456",
+
+    "type": "publicMsg",
+
+    "content": "<item><url><![CDATA[https://example.com]]></url><summary><![CDATA[This is a summary]]></summary></item>",
+
+    "addition": null
+
+    }
+
+    URL 消息
+
+    JSON
+
+    {
+
+    "user_id": "user789",
+
+    "type": "url",
+
+    "content": "<url>https://example.com&amp;chksm=12345</url>",
+
+    "addition": "Shared from WeChat"
+
+    }
+    """
     background_tasks.add_task(message_manager, _input=request.model_dump())
     return {"msg": "received well"}
 

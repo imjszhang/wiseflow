@@ -10,3 +10,4 @@ json_repair==0.*
 beautifulsoup4
 fastapi
 requests
+pandas
