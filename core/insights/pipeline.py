@@ -14,7 +14,7 @@ extensions = ('.pdf', '.docx', '.xlsx', '.doc', '.ppt', '.pptx', '.xls', '.txt',
               '.tiff', '.mp4', '.avi', '.wmv', '.mkv', '.flv', '.wav', '.mp3', '.avi', '.mov', '.wmv', '.mpeg', '.mpg',
               '.3gp', '.ogg', '.webm', '.m4a', '.aac', '.flac', '.wma', '.amr', '.ogg', '.m4v', '.m3u8', '.m3u', '.ts',
               '.mts')
-expiration_days = 3
+expiration_days = 10
 existing_urls = {url['url'] for url in pb.read(collection_name='articles', fields=['url']) if url['url']}
 
 async def pipeline(url: str, cache: Dict[str, str] = {}):

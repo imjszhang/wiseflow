@@ -34,7 +34,7 @@ if not focus_data:
 focus_list = [item["name"] for item in focus_data if item["name"]]
 focus_dict = {item["name"]: item["id"] for item in focus_data if item["name"]}
 lang_term = ''.join([f'{item["name"]}{item["explaination"]}' for item in focus_data if item["name"]])
-focus_statement = '\n'.join([f'<tag>{item["name"]}</tag>{item["explaination"]}' for item in focus_data if item["name"] and item["explaination"]])
+focus_statement = '\n'.join([f'<tag>{item["name"]}</tag>\n{item["explaination"]}\n' for item in focus_data if item["name"] and item["explaination"]])
 
 # 定义模板文件路径
 PROMPT_DIR = "prompts"
