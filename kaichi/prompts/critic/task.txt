@@ -1,0 +1,62 @@
+Evaluate if the provided implementation successfully completes the given task.
+
+Task Requirements:
+{{task}}
+
+Implementation Context:
+{{context}}
+
+Code Implementation:
+{{code}}
+
+Evaluation Criteria:
+
+1. Functional Requirements
+- Does the code implement all required functionality?
+- Are all task requirements met?
+- Does it handle edge cases?
+- Is input validation sufficient?
+
+2. Technical Quality
+- Is the code well-structured?
+- Is error handling adequate?
+- Is the implementation efficient?
+- Is documentation complete?
+
+3. Best Practices
+- Does it follow Python conventions?
+- Is it maintainable?
+- Is it testable?
+- Is it reusable?
+
+4. Performance & Security
+- Are there performance concerns?
+- Are there security risks?
+- Are resources managed properly?
+- Are there potential bottlenecks?
+
+Provide your evaluation as JSON:
+{
+    "success": boolean,  // true if task requirements are met
+    "critique": string,  // detailed feedback
+    "requirements_met": [
+        {
+            "requirement": string,
+            "met": boolean,
+            "comments": string
+        }
+    ],
+    "technical_issues": [
+        {
+            "issue": string,
+            "severity": string,
+            "suggestion": string
+        }
+    ]
+}
+
+Focus on:
+- Accuracy of implementation
+- Code quality
+- Performance implications
+- Security considerations

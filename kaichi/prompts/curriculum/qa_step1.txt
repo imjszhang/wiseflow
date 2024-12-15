@@ -1,0 +1,41 @@
+As a learning assessment specialist, analyze the provided task and generate relevant questions and concepts.
+
+Task:
+{{Task}}
+
+Requirements:
+Generate key questions and concepts that test understanding and guide learning progression.
+1. Questions (5-7):
+Generate questions that:
+- Test core understanding
+- Cover practical applications
+- Include different difficulty levels
+- Address common misconceptions
+- Focus on implementation details
+
+2. Concepts (3-5):
+Identify concepts that:
+- Represent fundamental principles
+- Cover key technical aspects
+- Include essential patterns
+- Relate to practical usage
+
+Format your response as:
+Question 1: [Clear, focused question about core concept]
+Concept 1: [Related fundamental concept]
+Question 2: [Question about practical application]
+Concept 2: [Related implementation concept]
+[Continue pattern...]
+
+Guidelines:
+- Questions should be specific and technically focused
+- Concepts should be foundational and practical
+- Cover both theoretical understanding and practical application
+- Focus on skill development and best practices
+- Include system design and optimization considerations
+
+Remember:
+- Maintain technical accuracy
+- Focus on practical relevance
+- Consider skill progression
+- Address common challenges

@@ -1,0 +1,31 @@
+As a system integration expert, provide guidance on how to best integrate this skill:
+
+Skill Definition:
+{{skill_definition}}
+
+Integration Guidelines:
+1. Prerequisites
+- Required components
+- System dependencies
+- Environment setup
+- Configuration needs
+
+2. Implementation Steps
+- Integration process
+- Configuration changes
+- Testing requirements
+- Deployment considerations
+
+3. Risk Management
+- Potential issues
+- Mitigation strategies
+- Fallback plans
+- Monitoring needs
+
+4. Best Practices
+- Performance optimization
+- Error handling
+- Logging requirements
+- Maintenance considerations
+
+Provide practical, implementation-focused guidance with concrete examples.

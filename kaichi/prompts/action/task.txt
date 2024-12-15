@@ -1,0 +1,41 @@
+Based on the following task requirements and context, implement a solution.
+
+Context:
+{{context}}
+
+Task:
+{{task}}
+
+Requirements:
+1. Implementation Details
+- Complete, working code
+- Proper error handling
+- Type hints
+- Logging integration
+- Performance considerations
+
+2. Documentation
+- Clear docstrings
+- Parameter descriptions
+- Return value specifications
+- Usage examples
+- Implementation notes
+
+3. Code Quality
+- Clean, readable code
+- Modular design
+- Reusable components
+- Efficient implementation
+- Edge case handling
+
+4. Testing Considerations
+- Input validation
+- Error scenarios
+- Edge cases
+- Performance aspects
+
+Your response should be production-ready code that:
+- Solves the given task effectively
+- Is well documented and readable
+- Handles errors gracefully
+- Is performant and efficient
