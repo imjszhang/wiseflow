@@ -1,10 +1,15 @@
 import asyncio
+import os
 from agents.curriculum import CurriculumAgent, CurriculumConfig
 
 async def main():
+    # 获取当前文件所在的目录（kaichi目录）
+    kaichi_dir = os.path.abspath(os.path.dirname(__file__))   
+
     # 配置 CurriculumAgent
     config = CurriculumConfig(
-        ckpt_dir="work_dir/ckpt",
+        ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
+        observation_dir=os.path.join(kaichi_dir, "../core"),        # 观察目录（项目根目录下的 core）
         mode="auto",
         source_name="test_source",
         source_content="This is a test source content",

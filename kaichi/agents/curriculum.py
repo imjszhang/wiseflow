@@ -38,6 +38,7 @@ class CurriculumConfig:
     mode: str = "auto"  # auto or manual
     source_name: str = "init"
     source_content: str = "init" 
+    observation_dir: str = os.path.abspath(os.path.dirname(__file__))    
     project_name: str = "default"
     max_retries: int = 5
     log_level: str = "INFO"
