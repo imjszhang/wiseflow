@@ -84,11 +84,11 @@ class Kaichi:
         if self.config.resume:
             self._load_checkpoints()
             
-        self.logger.info("WiseflowAgent initialized successfully")
+        self.logger.info("Kaichi initialized successfully")
 
     def _setup_logging(self):
         """Setup logging configuration"""
-        self.logger = logging.getLogger("WiseflowAgent")
+        self.logger = logging.getLogger("Kaichi")
         self.logger.setLevel(self.config.log_level)
         
         handler = logging.FileHandler(f"{self.config.ckpt_dir}/agent.log")

@@ -2,6 +2,10 @@ from __future__ import annotations
 import os
 import time
 import logging
+import shutil
+import signal
+import platform
+from datetime import datetime
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 
@@ -13,10 +17,11 @@ from agents.skill import SkillManager, SkillManagerConfig
 @dataclass
 class ActionConfig:
     """Action Agent Configuration"""
+    observation_dir: str = "."
     ckpt_dir: str = "work_dir/ckpt"
+    resume: bool = False
     mode: str = "auto"
-    source_name: str = "init"
-    knowledge_name: str = "default"
+    project_name: str = "default"
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
@@ -104,6 +109,8 @@ class ActionAgent:
         
         # Initialize skill manager
         skill_config = SkillManagerConfig(
+            project_name=self.config.project_name,
+            resume=self.config.resume,
             ckpt_dir=self.config.ckpt_dir,
             cache_size=self.config.cache_size,
             log_level=self.config.log_level
@@ -117,7 +124,7 @@ class ActionAgent:
         self.logger = logging.getLogger("ActionAgent")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/action/logs"
+        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action/logs"
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/action_agent.log")
@@ -146,7 +153,7 @@ class ActionAgent:
 
     def _init_directories(self):
         """Initialize directory structure"""
-        base_dir = f"{self.config.ckpt_dir}/action/{self.config.knowledge_name}/{self.config.source_name}"
+        base_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action"
         dirs = [
             base_dir,
             f"{base_dir}/cache"
@@ -188,7 +195,7 @@ class ActionAgent:
 
     def _get_base_path(self) -> str:
         """Get base path for state files"""
-        return f"{self.config.ckpt_dir}/action/{self.config.knowledge_name}/{self.config.source_name}"
+        return f"{self.config.ckpt_dir}/{self.config.project_name}/action"
 
     async def update_skill_knowledge(self, info: Dict):
         """Update skill knowledge base using SkillManager"""
@@ -234,45 +241,126 @@ class ActionAgent:
             self.logger.error(f"Failed to analyze code: {e}")
             raise
 
-    async def execute_skill(self, query: str, *args, **kwargs) -> Optional[Dict]:
+    async def execute_skill(self, skill_name: str, skill_code: str, *args, **kwargs) -> Dict:
         """
-        Find and execute a skill from the skill library based on the query.
+        Execute a specific skill by its name and code with security restrictions.
 
         Args:
-            query (str): The query to search for a relevant skill.
+            skill_name (str): The name of the skill to execute.
+            skill_code (str): The code of the skill to execute.
             *args: Positional arguments to pass to the skill function.
             **kwargs: Keyword arguments to pass to the skill function.
 
         Returns:
-            Optional[Dict]: The result of the skill execution, or None if no skill is found.
+            Dict: A structured response with execution status, message, data, and error details.
         """
+        original_dir = os.getcwd()  # Save the original working directory
         try:
-            # Step 1: Search for relevant skills
-            self.logger.info(f"Searching for skills related to query: {query}")
-            skills = await self.skill_manager.retrieve_skills(query)
+            # Change to the observation directory
+            observation_dir = self.config.observation_dir
+            if not os.path.exists(observation_dir):
+                raise FileNotFoundError(f"Execution directory does not exist: {observation_dir}")
+            os.chdir(observation_dir)
 
-            if not skills:
-                self.logger.warning(f"No skills found for query: {query}")
-                return None
+            # Log the execution start
+            self.logger.info(f"Starting execution of skill: {skill_name} in directory: {observation_dir}")
 
-            # Step 2: Select the first relevant skill (you can implement more complex selection logic if needed)
-            skill_code = skills[0]
-            self.logger.info(f"Executing skill: {skill_code}")
+            # Prepare safe execution environment
+            safe_globals = {
+                "__builtins__": {
+                    "print": print,
+                    "list": list,
+                    "dict": dict,
+                    "len": len,
+                    "__import__": __import__,
+                },
+                "os": os,  # Explicitly include the 'os' module
+            }
+            safe_locals = {}
 
-            # Step 3: Dynamically execute the skill code
-            exec_globals = {}
-            exec_locals = {}
-            exec(skill_code, exec_globals, exec_locals)
+            # Step 1: Execute the skill code
+            try:
+                exec(skill_code, safe_globals, safe_locals)
 
-            # Assuming the skill defines a function named `main` as the entry point
-            if "main" in exec_locals:
-                result = await exec_locals["main"](*args, **kwargs)
-                self.logger.info(f"Skill executed successfully: {result}")
-                return {"result": result}
-            else:
-                self.logger.error("No 'main' function found in the skill code")
-                return None
+                # Log the successful execution
+                self.logger.info(f"Skill code executed successfully: {skill_name}")
 
+                # Step 2: Find the function matching the skill_name
+                if skill_name not in safe_locals or not callable(safe_locals[skill_name]):
+                    raise ValueError(f"No callable function named '{skill_name}' found in the executed code.")
+
+                # Retrieve the function
+                skill_function = safe_locals[skill_name]
+                self.logger.info(f"Executing function: {skill_name}")
+
+                # Step 3: Call the function and store the result
+                result = skill_function(*args, **kwargs)
+
+                # Return the execution result
+                return {
+                    "status": "success",
+                    "message": f"Skill executed successfully: {skill_name}",
+                    "data": result,  # Store the result of the function execution
+                    "error": None
+                }
+            except TimeoutError:
+                self.logger.error("Code execution timed out!")
+                return {
+                    "status": "timeout",
+                    "message": "Code execution timed out!",
+                    "data": None,
+                    "error": "TimeoutError"
+                }
+            except Exception as e:
+                self.logger.error(f"Code execution failed: {e}")
+                return {
+                    "status": "error",
+                    "message": f"Skill execution failed: {skill_name}",
+                    "data": None,
+                    "error": str(e)
+                }
         except Exception as e:
             self.logger.error(f"Failed to execute skill: {e}")
-            raise
+            return {
+                "status": "error",
+                "message": "Failed to execute skill!",
+                "data": None,
+                "error": str(e)
+            }
+        finally:
+            # Restore the original working directory
+            os.chdir(original_dir)
+
+    def _backup_file(self, file_path: str, backup_dir: str):
+        """
+        Backup a file before it is modified or deleted.
+
+        Args:
+            file_path (str): The path of the file to backup.
+            backup_dir (str): The directory where backups are stored.
+        """
+        try:
+            if os.path.exists(file_path):
+                # Create a timestamped backup file
+                timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+                backup_path = os.path.join(
+                    backup_dir, f"{os.path.basename(file_path)}.{timestamp}.bak"
+                )
+                shutil.copy2(file_path, backup_path)
+                self.logger.info(f"Backup created for {file_path} at {backup_path}")
+        except Exception as e:
+            self.logger.error(f"Failed to backup file {file_path}: {e}")
+
+    def _setup_logging(self):
+        """Setup logging system"""
+        self.logger = logging.getLogger("ActionAgent")
+        self.logger.setLevel(self.config.log_level)
+
+        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action/logs"
+        os.makedirs(log_dir, exist_ok=True)
+
+        handler = logging.FileHandler(f"{log_dir}/action_agent.log")
+        handler.setFormatter(logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        ))
+        self.logger.addHandler(handler)

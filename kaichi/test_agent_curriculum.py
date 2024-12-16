@@ -7,7 +7,7 @@ async def main():
         ckpt_dir="work_dir/ckpt",
         mode="auto",
         source_name="test_source",
-        source_content="This is a test source content about AI and machine learning.",
+        source_content="This is a test source content",
         project_name="test",
         max_retries=3,
         log_level="DEBUG",
