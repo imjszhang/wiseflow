@@ -15,7 +15,6 @@ class AgentConfig:
     max_retries: int = 5
     observation_dir: str = os.path.abspath(os.path.dirname(__file__))
     ckpt_dir: str = "work_dir/ckpt"
-    project_name: str = "default"
     resume: bool = False
     log_level: str = "INFO"
     skill_cache_size: int = 100
@@ -120,7 +119,7 @@ class Kaichi:
         """Load checkpoints if resume is enabled"""
         try:
             # Load skills from checkpoint
-            skills = U.load_text(f"{self.config.ckpt_dir}/{self.config.project_name}/skills/skill.txt")
+            skills = U.load_text(f"{self.config.ckpt_dir}/skills/skill.txt")
             for skill in skills.split("\n"):
                 if skill.strip():
                     self.skill_cache.add("basic_skill", skill)
@@ -140,7 +139,7 @@ class Kaichi:
         self.metrics.reset()
         
         # Load skills and prepare messages
-        skills = U.load_text(f"{self.config.ckpt_dir}/{self.config.project_name}/skills/skill.txt")
+        skills = U.load_text(f"{self.config.ckpt_dir}/skills/skill.txt")
         system_message = self.action_agent.render_system_message(skills=skills)
         human_message = self.action_agent.render_human_message(
             code="", task=task, context=context, critique=""
@@ -312,7 +311,6 @@ def main():
     config = AgentConfig(
         max_iterations=160,
         max_retries=5,
-        project_name="test",
         ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
         observation_dir=os.path.join(kaichi_dir, "../core"),        # 观察目录（项目根目录下的 core）
         resume=False,

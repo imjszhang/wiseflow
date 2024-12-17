@@ -15,7 +15,6 @@ class CriticConfig:
     """Critic Agent Configuration"""
     ckpt_dir: str = "work_dir/ckpt"
     mode: str = "auto"  # auto or manual
-    project_name: str = "default"
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
@@ -87,7 +86,7 @@ class CriticAgent:
         self.logger = logging.getLogger("CriticAgent")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/critic/logs"
+        log_dir = f"{self.config.ckpt_dir}/critic/logs"
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/critic_agent.log")
@@ -117,7 +116,7 @@ class CriticAgent:
 
     def _init_directories(self):
         """Initialize directory structure"""
-        base_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/critic"
+        base_dir = f"{self.config.ckpt_dir}/critic"
         dirs = [
             base_dir,
             f"{base_dir}/cache"
@@ -167,7 +166,7 @@ class CriticAgent:
 
     def _get_base_path(self) -> str:
         """Get base path for state files"""
-        return f"{self.config.ckpt_dir}/{self.config.project_name}/critic"
+        return f"{self.config.ckpt_dir}/critic"
 
     def render_system_message(self) -> Dict[str, str]:
         """Render system message"""

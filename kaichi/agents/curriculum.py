@@ -39,7 +39,6 @@ class CurriculumConfig:
     source_name: str = "init"
     source_content: str = "init" 
     observation_dir: str = os.path.abspath(os.path.dirname(__file__))    
-    project_name: str = "default"
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
@@ -212,7 +211,7 @@ class CurriculumAgent:
         self.logger = logging.getLogger("CurriculumAgent")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/curriculum/logs"
+        log_dir = f"{self.config.ckpt_dir}/curriculum/logs"  # 修改此行
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/curriculum_agent.log")
@@ -245,7 +244,7 @@ class CurriculumAgent:
     def _init_directories(self):
         """Initialize directory structure"""
         dirs = [
-            f"{self.config.ckpt_dir}/{self.config.project_name}/curriculum",
+            f"{self.config.ckpt_dir}/curriculum",  # 修改此行
         ]
         for dir_path in dirs:
             os.makedirs(dir_path, exist_ok=True)
@@ -314,7 +313,7 @@ class CurriculumAgent:
 
     def _get_base_path(self) -> str:
         """Get base path for state files"""
-        return f"{self.config.ckpt_dir}/{self.config.project_name}/curriculum"
+        return f"{self.config.ckpt_dir}/curriculum"  # 修改此行
 
     async def propose_next_task(self, max_retries: Optional[int] = None) -> Tuple[str, str]:
         """Propose next task"""

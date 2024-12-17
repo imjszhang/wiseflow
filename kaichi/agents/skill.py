@@ -13,7 +13,6 @@ class SkillManagerConfig:
     """技能管理器配置"""
     retrieval_top_k: int = 5
     ckpt_dir: str = "work_dir/ckpt"
-    project_name: str = "default"    
     resume: bool = False
     dataset_name: str = "skill_dataset"
     cache_size: int = 100
@@ -91,7 +90,7 @@ class SkillManager:
         self.logger = logging.getLogger("SkillManager")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/skill/logs"
+        log_dir = f"{self.config.ckpt_dir}/skill/logs"  # 修改此行
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/skill_manager.log")
@@ -115,8 +114,8 @@ class SkillManager:
     def _init_directories(self):
         """初始化目录结构"""
         dirs = [
-            f"{self.config.ckpt_dir}/{self.config.project_name}/skill/code",
-            f"{self.config.ckpt_dir}/{self.config.project_name}/skill/description"
+            f"{self.config.ckpt_dir}/skill/code",  # 修改此行
+            f"{self.config.ckpt_dir}/skill/description"  # 修改此行
         ]
         for dir_path in dirs:
             os.makedirs(dir_path, exist_ok=True)
@@ -125,9 +124,9 @@ class SkillManager:
     def _load_skills(self):
         """加载技能数据"""
         if self.config.resume:
-            self.logger.info(f"Loading skills from {self.config.ckpt_dir}/{self.config.project_name}/skill")
+            self.logger.info(f"Loading skills from {self.config.ckpt_dir}/skill")  # 修改此行
             try:
-                self.skills = U.load_json(f"{self.config.ckpt_dir}/{self.config.project_name}/skill/skills.json")
+                self.skills = U.load_json(f"{self.config.ckpt_dir}/skill/skills.json")  # 修改此行
                 for name, data in self.skills.items():
                     self.skill_cache.add(name, data)
             except Exception as e:
@@ -301,7 +300,7 @@ class SkillManager:
             
             self.skill_cache.add(skill_name, skill_data)
             
-            U.dump_json(self.skills, f"{self.config.ckpt_dir}/{self.config.project_name}/skill/skills.json")
+            U.dump_json(self.skills, f"{self.config.ckpt_dir}/skill/skills.json")  # 修改此行
             
             self.logger.info(f"Successfully added skill: {skill_name}")
             

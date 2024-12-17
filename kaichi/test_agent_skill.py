@@ -3,7 +3,6 @@ from agents import SkillManager, SkillManagerConfig
 async def main():
     # 创建配置
     config = SkillManagerConfig(
-        project_name="test",
         retrieval_top_k=10,
         cache_size=200,
         log_level="DEBUG"

@@ -21,7 +21,6 @@ class ActionConfig:
     ckpt_dir: str = "work_dir/ckpt"
     resume: bool = False
     mode: str = "auto"
-    project_name: str = "default"
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
@@ -124,7 +123,7 @@ class ActionAgent:
         self.logger = logging.getLogger("ActionAgent")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action/logs"
+        log_dir = f"{self.config.ckpt_dir}/action/logs"
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/action_agent.log")
@@ -153,7 +152,7 @@ class ActionAgent:
 
     def _init_directories(self):
         """Initialize directory structure"""
-        base_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action"
+        base_dir = f"{self.config.ckpt_dir}/action"
         dirs = [
             base_dir,
             f"{base_dir}/cache"
@@ -195,7 +194,7 @@ class ActionAgent:
 
     def _get_base_path(self) -> str:
         """Get base path for state files"""
-        return f"{self.config.ckpt_dir}/{self.config.project_name}/action"
+        return f"{self.config.ckpt_dir}/action"
 
     async def update_skill_knowledge(self, info: Dict):
         """Update skill knowledge base using SkillManager"""
@@ -356,7 +355,7 @@ class ActionAgent:
         self.logger = logging.getLogger("ActionAgent")
         self.logger.setLevel(self.config.log_level)
 
-        log_dir = f"{self.config.ckpt_dir}/{self.config.project_name}/action/logs"
+        log_dir = f"{self.config.ckpt_dir}/action/logs"
         os.makedirs(log_dir, exist_ok=True)
 
         handler = logging.FileHandler(f"{log_dir}/action_agent.log")
