@@ -1,3 +1,4 @@
+# File: agents/curriculum.py
 from __future__ import annotations
 import os
 import time
@@ -10,8 +11,7 @@ import re
 from llms.dify_wrapper import dify_llm_async
 import utils as U
 from prompts import load_prompt
-
-
+from envs.project_observer import ProjectObserver
 import re
 
 def extract_json_from_markdown(content: str) -> str:
@@ -24,21 +24,20 @@ def extract_json_from_markdown(content: str) -> str:
     Returns:
         str: The extracted JSON content, or an empty string if no valid JSON block is found.
     """
-    # Regular expression to match ```json ... ```
     pattern = r"```json\s*(.*?)\s*```"
     match = re.search(pattern, content, re.DOTALL)  # DOTALL allows `.` to match newlines
     if match:
         return match.group(1).strip()  # Extract the JSON content inside the code block
     return ""  # Return an empty string if no match is found
 
+
 @dataclass
 class CurriculumConfig:
     """Curriculum Manager Configuration"""
-    ckpt_dir: str = "work_dir/ckpt"
-    mode: str = "auto"  # auto or manual
-    source_name: str = "init"
-    source_content: str = "init" 
-    observation_dir: str = os.path.abspath(os.path.dirname(__file__))    
+    ckpt_dir: str = "work_dir/ckpt"  # 工作目录
+    mode: str = "auto"  # auto 或 manual
+    source_content: str = "init"
+    observation_dir: str = os.path.abspath(os.path.dirname(__file__))  # 源目录
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
@@ -52,7 +51,9 @@ class CurriculumConfig:
             raise ValueError(f"Invalid cache size: {self.cache_size}")
         if self.max_retries <= 0:
             raise ValueError(f"Invalid max retries: {self.max_retries}")
-
+        # 确保工作目录存在
+        os.makedirs(self.ckpt_dir, exist_ok=True)
+        
 class QAPair:
     """Question-Answer Pair Structure"""
     def __init__(self, question: str, concept: str, answer: Optional[str] = None):
@@ -192,6 +193,12 @@ class CurriculumAgent:
         self.config = config or CurriculumConfig()
         self.llm = dify_llm_async
         
+        # 初始化 ProjectObserver
+        self.project_observer = ProjectObserver(
+            source_dir=self.config.observation_dir,
+            target_dir=os.path.join("work_dir", "observation_data")
+        )
+        
         # Setup logging
         self._setup_logging()
         
@@ -211,7 +218,7 @@ class CurriculumAgent:
         self.logger = logging.getLogger("CurriculumAgent")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/curriculum/logs"  # 修改此行
+        log_dir = f"{self.config.ckpt_dir}/curriculum/logs"
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/curriculum_agent.log")
@@ -244,7 +251,7 @@ class CurriculumAgent:
     def _init_directories(self):
         """Initialize directory structure"""
         dirs = [
-            f"{self.config.ckpt_dir}/curriculum",  # 修改此行
+            f"{self.config.ckpt_dir}/curriculum",
         ]
         for dir_path in dirs:
             os.makedirs(dir_path, exist_ok=True)
@@ -257,7 +264,6 @@ class CurriculumAgent:
             "completed_tasks": 0,
             "failed_tasks": 0
         }
-        
         if not self.config.warm_up:
             self.warm_up = self.default_warm_up
         else:
@@ -270,7 +276,6 @@ class CurriculumAgent:
                 
         self.warm_up["completed_tasks"] = 0
         self.warm_up["failed_tasks"] = 0
-
     def _load_state(self):
         """Load saved state"""
         try:
@@ -579,3 +584,91 @@ class CurriculumAgent:
     def progress(self) -> int:
         """Get total progress"""
         return self.task_progress.progress
+
+    def extract_and_save_observation(self):
+        """
+        提取项目的观察数据并保存到目标目录。
+        """
+        try:
+            self.logger.info("Extracting project observation data...")
+            observation = self.project_observer.observe_project()
+            self.project_observer.save_observation(observation)
+            self.logger.info("Project observation data saved successfully.")
+        except Exception as e:
+            self.logger.error(f"Failed to extract and save observation data: {e}")
+
+    def get_saved_observation(self) -> Optional[Dict]:
+        """
+        获取已保存的项目观察数据。
+        :return: 观察数据字典，或 None（如果文件不存在）
+        """
+        try:
+            observation_file = os.path.join(self.project_observer.target_dir, "project_observation.json")
+            if not os.path.exists(observation_file):
+                self.logger.warning("No saved observation data found.")
+                return None
+            
+            with open(observation_file, "r", encoding="utf-8") as f:
+                observation = json.load(f)
+                self.logger.info("Loaded saved observation data.")
+                return observation
+        except Exception as e:
+            self.logger.error(f"Failed to load saved observation data: {e}")
+            return None
+
+    async def get_task_context(self, task: str) -> str:
+        """
+        获取任务的上下文信息。
+        :param task: 任务名称
+        :return: 上下文字符串
+        """
+        try:
+            # 提取并保存观察数据
+            self.extract_and_save_observation()
+            
+            # 加载已保存的观察数据
+            observation = self.get_saved_observation()
+            if not observation:
+                return f"No observation data available for task: {task}"
+            
+            # 格式化观察数据为上下文
+            return self._format_observation_context(task, observation)
+        except Exception as e:
+            self.logger.error(f"Failed to get task context: {e}")
+            raise
+
+    def _format_observation_context(self, task: str, observation: Dict) -> str:
+        """
+        将观察数据格式化为上下文字符串。
+        :param task: 任务名称
+        :param observation: 观察数据字典
+        :return: 上下文字符串
+        """
+        context_parts = [
+            f"Task: {task}",
+            "\nDirectory Structure:",
+            *[f"- {item}" for item in observation.get("directory_structure", [])],
+            "\nKey Files:",
+        ]
+        
+        key_files = observation.get("key_files", {})
+        for file_name, content in key_files.items():
+            context_parts.append(f"\n{file_name}:\n{content[:200]}...")  # 只显示前 200 个字符
+        
+        context_parts.extend([
+            "\nProject Meta:",
+            f"File Count: {observation.get('meta', {}).get('file_count', 0)}",
+            f"Directory Count: {observation.get('meta', {}).get('dir_count', 0)}",
+            f"Total Size: {observation.get('meta', {}).get('total_size', 0)} bytes",
+            "\nLog Summary:",
+            *[f"- {log}" for log in observation.get("log_summary", [])],
+            "\nCode Statistics:",
+            f"Total Lines: {observation.get('code_statistics', {}).get('total_lines', 0)}",
+            "File Types:",
+        ])
+        
+        file_types = observation.get("code_statistics", {}).get("file_types", {})
+        for ext, count in file_types.items():
+            context_parts.append(f"- {ext}: {count} files")
+        
+        return "\n".join(context_parts)

@@ -259,7 +259,7 @@ class Kaichi:
         self.logger.info(f"Rollout completed. Success: {info['success']}")
         return messages, reward, done, info
 
-    def run(self, task: str = "", maxloop: int = 1):
+    def learn(self, task: str = "", maxloop: int = 1):
         """Run agent with given task or curriculum"""
         self.logger.info(f"Starting agent run. Task: {task}, maxloop: {maxloop}")
         
@@ -318,7 +318,7 @@ def main():
     )
     
     agent = Kaichi(config)
-    results = agent.run()
+    results = agent.learn()
     print(f"Run completed with results: {results}")
 
 if __name__ == "__main__":
