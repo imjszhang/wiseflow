@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 from typing import Dict, List, Optional
 
 
@@ -23,7 +24,7 @@ class ProjectObserver:
                 "key_files": self._extract_key_files(),
                 "meta": self._get_project_meta(),
                 "log_summary": self._summarize_logs(),
-                "code_statistics": self._analyze_code()
+                "code_analysis": self._analyze_code()
             }
             return project_info
         except Exception as e:
@@ -102,23 +103,101 @@ class ProjectObserver:
 
     def _analyze_code(self) -> Dict:
         """
-        分析代码文件，统计代码行数和文件类型分布。
-        :return: 代码统计信息字典
+        分析代码文件，进行静态分析、文档分析和依赖分析。
+        :return: 代码分析结果字典
         """
-        code_stats = {"total_lines": 0, "file_types": {}}
+        code_analysis = {
+            "modules": [],
+            "classes": {},
+            "functions": {},
+            "dependencies": self._analyze_dependencies(),
+            "readme_summary": self._analyze_readme()
+        }
+
         for root, dirs, files in os.walk(self.source_dir):
             for file in files:
-                if file.endswith((".py", ".js", ".java", ".cpp")):  # 支持的代码文件类型
+                if file.endswith(".py"):  # 仅分析 Python 文件
                     file_path = os.path.join(root, file)
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:
-                            lines = f.readlines()
-                            code_stats["total_lines"] += len(lines)
-                            ext = os.path.splitext(file)[1]
-                            code_stats["file_types"][ext] = code_stats["file_types"].get(ext, 0) + 1
+                            code = f.read()
+                            self._analyze_python_file(file_path, code, code_analysis)
                     except Exception as e:
-                        print(f"Failed to analyze code file {file}: {e}")
-        return code_stats
+                        print(f"Failed to analyze Python file {file}: {e}")
+
+        return code_analysis
+
+    def _analyze_python_file(self, file_path: str, code: str, analysis: Dict):
+        """
+        使用 AST 模块对 Python 文件进行静态分析。
+        :param file_path: 文件路径
+        :param code: 文件内容
+        :param analysis: 分析结果字典
+        """
+        try:
+            tree = ast.parse(code, filename=file_path)
+            module_name = os.path.relpath(file_path, self.source_dir).replace(os.sep, ".").rstrip(".py")
+            analysis["modules"].append(module_name)
+
+            for node in ast.walk(tree):
+                if isinstance(node, ast.ClassDef):
+                    class_name = node.name
+                    methods = [n.name for n in node.body if isinstance(n, ast.FunctionDef)]
+                    analysis["classes"][class_name] = {"methods": methods}
+                elif isinstance(node, ast.FunctionDef):
+                    func_name = node.name
+                    args = [arg.arg for arg in node.args.args]
+                    docstring = ast.get_docstring(node)
+                    analysis["functions"][func_name] = {
+                        "args": args,
+                        "doc": docstring or "No documentation available."
+                    }
+        except Exception as e:
+            print(f"Failed to parse Python file {file_path}: {e}")
+
+    def _analyze_readme(self) -> str:
+        """
+        分析 README 文件，提取项目的功能描述。
+        :return: README 文件的摘要
+        """
+        readme_path = os.path.join(self.source_dir, "README.md")
+        if os.path.exists(readme_path):
+            try:
+                with open(readme_path, "r", encoding="utf-8") as f:
+                    content = f.read()
+                    # 提取前几行作为摘要
+                    return "\n".join(content.splitlines()[:10])
+            except Exception as e:
+                print(f"Failed to read README file: {e}")
+        return "No README file found."
+
+    def _analyze_dependencies(self) -> List[str]:
+        """
+        分析项目的依赖项。
+        :return: 依赖项列表
+        """
+        dependencies = []
+        requirements_path = os.path.join(self.source_dir, "requirements.txt")
+        pyproject_path = os.path.join(self.source_dir, "pyproject.toml")
+
+        if os.path.exists(requirements_path):
+            try:
+                with open(requirements_path, "r", encoding="utf-8") as f:
+                    dependencies.extend([line.strip() for line in f if line.strip() and not line.startswith("#")])
+            except Exception as e:
+                print(f"Failed to read requirements.txt: {e}")
+
+        if os.path.exists(pyproject_path):
+            try:
+                with open(pyproject_path, "r", encoding="utf-8") as f:
+                    # 简单解析 pyproject.toml 的依赖部分
+                    for line in f:
+                        if "dependencies" in line or "requires" in line:
+                            dependencies.append(line.strip())
+            except Exception as e:
+                print(f"Failed to read pyproject.toml: {e}")
+
+        return dependencies
 
     def save_observation(self, observation: Dict):
         """
