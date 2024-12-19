@@ -1,5 +1,10 @@
+import os
+from dotenv import load_dotenv
 import asyncio
 from insights import pipeline, pb, logger
+# 加载 .env 文件
+env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../.env')
+load_dotenv(dotenv_path=env_path)
 
 # 全局计数器，用于记录任务执行的次数
 counter = 1
