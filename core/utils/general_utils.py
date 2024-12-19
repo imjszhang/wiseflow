@@ -4,18 +4,29 @@ import re
 import jieba
 
 
-def isURL(string):
+def isURL(string: str) -> bool:
+    """
+    检查字符串是否为有效的 URL。
+
+    :param string: str - 待检测的字符串
+    :return: bool - 如果是有效的 URL，返回 True；否则返回 False
+    """
     if string.startswith("www."):
         string = f"https://{string}"
     result = urlparse(string)
     return result.scheme != '' and result.netloc != ''
 
 
-def extract_urls(text):
-    # Regular expression to match http, https, and www URLs
+def extract_urls(text: str) -> set:
+    """
+    从文本中提取所有 URL。
+
+    :param text: str - 包含 URL 的文本
+    :return: set - 提取的 URL 集合
+    """
+    # 匹配 http, https 和 www 开头的 URL
     url_pattern = re.compile(r'((?:https?://|www\.)[-A-Za-z0-9+&@#/%?=~_|!:,.;]*[-A-Za-z0-9+&@#/%=~_|])')
     urls = re.findall(url_pattern, text)
-    # urls = {quote(url.rstrip('/'), safe='/:?=&') for url in urls}
     cleaned_urls = set()
     for url in urls:
         if url.startswith("www."):
@@ -23,9 +34,8 @@ def extract_urls(text):
         parsed_url = urlparse(url)
         if not parsed_url.netloc:
             continue
-        # remove hash fragment
+        # 移除 URL 中的 hash fragment
         if not parsed_url.scheme:
-            # just try https
             cleaned_urls.add(f"https://{parsed_url.netloc}{parsed_url.path}{parsed_url.params}{parsed_url.query}")
         else:
             cleaned_urls.add(
@@ -33,27 +43,36 @@ def extract_urls(text):
     return cleaned_urls
 
 
-def isChinesePunctuation(char):
-    # Define the Unicode encoding range for Chinese punctuation marks
+def isChinesePunctuation(char: str) -> bool:
+    """
+    检查字符是否为中文标点符号。
+
+    :param char: str - 待检测的字符
+    :return: bool - 如果是中文标点符号，返回 True；否则返回 False
+    """
     chinese_punctuations = set(range(0x3000, 0x303F)) | set(range(0xFF00, 0xFFEF))
-    # Check if the character is within the above range
     return ord(char) in chinese_punctuations
 
 
-def is_chinese(string):
+def is_chinese(string: str) -> bool:
     """
-    :param string: {str} The string to be detected
-    :return: {bool} Returns True if most are Chinese, False otherwise
+    检测字符串是否主要由中文字符组成。
+
+    :param string: str - 待检测的字符串
+    :return: bool - 如果大部分是中文字符，返回 True；否则返回 False
     """
     pattern = re.compile(r'[^\u4e00-\u9fa5]')
     non_chinese_count = len(pattern.findall(string))
-    # It is easy to misjudge strictly according to the number of bytes less than half.
-    # English words account for a large number of bytes, and there are punctuation marks, etc
-    return (non_chinese_count/len(string)) < 0.68
+    return (non_chinese_count / len(string)) < 0.68
 
 
-def extract_and_convert_dates(input_string):
-    # 定义匹配不同日期格式的正则表达式
+def extract_and_convert_dates(input_string: str) -> str:
+    """
+    从字符串中提取日期并转换为标准格式 YYYYMMDD。
+
+    :param input_string: str - 包含日期的字符串
+    :return: str - 提取的日期（格式为 YYYYMMDD），如果未找到则返回 None
+    """
     if not isinstance(input_string, str):
         return None
 
@@ -76,6 +95,11 @@ def extract_and_convert_dates(input_string):
 
 
 def get_logger_level() -> str:
+    """
+    获取日志级别。
+
+    :return: str - 日志级别（CRITICAL, DEBUG, INFO, WARNING, ERROR）
+    """
     level_map = {
         'silly': 'CRITICAL',
         'verbose': 'DEBUG',
@@ -92,22 +116,23 @@ def get_logger_level() -> str:
     return level_map.get(level, 'info')
 
 
-def compare_phrase_with_list(target_phrase, phrase_list, threshold):
+def compare_phrase_with_list(target_phrase: str, phrase_list: list, threshold: float) -> list:
     """
-    Compare the similarity of a target phrase to each phrase in the phrase list.
+    比较目标短语与短语列表中每个短语的相似性。
 
-    : Param target_phrase: target phrase (str)
-    : Param phrase_list: list of str
-    : param threshold: similarity threshold (float)
-    : Return: list of phrases that satisfy the similarity condition (list of str)
+    :param target_phrase: str - 目标短语
+    :param phrase_list: list - 短语列表
+    :param threshold: float - 相似性阈值
+    :return: list - 满足相似性条件的短语列表
     """
     if not target_phrase:
-        return []  # The target phrase is empty, and the empty list is returned directly.
+        return []  # 如果目标短语为空，直接返回空列表
 
-    # Preprocessing: Segmentation of the target phrase and each phrase in the phrase list
+    # 分词处理
     target_tokens = set(jieba.lcut(target_phrase))
     tokenized_phrases = {phrase: set(jieba.lcut(phrase)) for phrase in phrase_list}
 
+    # 计算相似性
     similar_phrases = [phrase for phrase, tokens in tokenized_phrases.items()
                        if len(target_tokens & tokens) / min(len(target_tokens), len(tokens)) > threshold]
 
