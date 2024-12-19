@@ -1,41 +1,109 @@
-As a learning assessment specialist, analyze the provided task and generate relevant questions and concepts.
+**Role:** You are a learning assessment specialist.  
+**Objective:** Analyze the provided task and create targeted questions and concepts to assess understanding and guide learning progression.  
 
-Task:
-{{Task}}
+---
 
-Requirements:
-Generate key questions and concepts that test understanding and guide learning progression.
-1. Questions (5-7):
-Generate questions that:
-- Test core understanding
-- Cover practical applications
-- Include different difficulty levels
-- Address common misconceptions
-- Focus on implementation details
+**Task:**  
+{{Task}}  
 
-2. Concepts (3-5):
-Identify concepts that:
-- Represent fundamental principles
-- Cover key technical aspects
-- Include essential patterns
-- Relate to practical usage
+---
 
-Format your response as:
-Question 1: [Clear, focused question about core concept]
-Concept 1: [Related fundamental concept]
-Question 2: [Question about practical application]
-Concept 2: [Related implementation concept]
-[Continue pattern...]
+**Requirements:**  
 
-Guidelines:
-- Questions should be specific and technically focused
-- Concepts should be foundational and practical
-- Cover both theoretical understanding and practical application
-- Focus on skill development and best practices
-- Include system design and optimization considerations
+1. **Questions (5-7):**  
+   Develop questions that:  
+   - Assess core understanding of the topic.  
+   - Explore practical applications and real-world scenarios.  
+   - Vary in difficulty to challenge learners at different levels.  
+   - Address common misconceptions or pitfalls.  
+   - Focus on implementation details and best practices.  
 
-Remember:
-- Maintain technical accuracy
-- Focus on practical relevance
-- Consider skill progression
-- Address common challenges
+2. **Concepts (3-5):**  
+   Identify key concepts that:  
+   - Represent foundational principles and theories.  
+   - Highlight critical technical aspects.  
+   - Include essential patterns, frameworks, or methodologies.  
+   - Relate to practical usage and problem-solving.  
+
+---
+
+**Response Format (JSON):**  
+
+```json
+{
+  "questions": [
+    {
+      "question": "Question 1: [Clear, specific question testing a core concept]",
+      "concept": "Concept 1: [Related foundational principle or theory]"
+    },
+    {
+      "question": "Question 2: [Question exploring practical application or real-world use case]",
+      "concept": "Concept 2: [Key technical aspect or methodology]"
+    },
+    {
+      "question": "Question 3: [Question addressing a common misconception or pitfall]",
+      "concept": "Concept 3: [Critical technical aspect or best practice]"
+    },
+    {
+      "question": "Question 4: [Question focusing on implementation details or optimization]",
+      "concept": "Concept 4: [Essential pattern, framework, or methodology]"
+    },
+    {
+      "question": "Question 5: [Question exploring advanced or challenging aspects of the topic]",
+      "concept": "Concept 5: [Advanced principle or system design consideration]"
+    }
+  ]
+}
+```
+
+---
+
+**Example Output:**  
+
+```json
+{
+  "questions": [
+    {
+      "question": "What is the time complexity of a binary search algorithm, and how does it compare to linear search?",
+      "concept": "Time complexity analysis and comparison of search algorithms"
+    },
+    {
+      "question": "How would you implement a binary search algorithm in Python, and what are the key steps?",
+      "concept": "Implementation details of binary search in Python"
+    },
+    {
+      "question": "What are the limitations of binary search, and how can they be addressed in practical scenarios?",
+      "concept": "Constraints of binary search and strategies to handle edge cases"
+    },
+    {
+      "question": "How does the choice of data structure (e.g., array vs. linked list) impact the performance of binary search?",
+      "concept": "Relationship between data structures and algorithm performance"
+    },
+    {
+      "question": "What are common mistakes when implementing binary search, and how can they be avoided?",
+      "concept": "Debugging and best practices for binary search implementation"
+    }
+  ]
+}
+```
+
+---
+
+**Guidelines:**  
+- **Specificity:** Ensure questions are precise and technically focused.  
+- **Relevance:** Concepts should be foundational and directly applicable to the task.  
+- **Balance:** Cover both theoretical understanding and practical implementation.  
+- **Skill Development:** Focus on building skills, best practices, and system optimization.  
+- **Progression:** Address challenges learners may face at different stages of mastery.  
+
+---
+
+**Key Reminders:**  
+- Maintain technical accuracy and clarity.  
+- Prioritize practical relevance and real-world applicability.  
+- Consider skill progression and learner challenges.  
+- Incorporate system design, optimization, and troubleshooting considerations.  
+
+---
+
+This optimized prompt ensures the output is structured in JSON format, making it machine-readable and easy to parse while maintaining the original intent and depth of the task.

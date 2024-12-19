@@ -3,6 +3,21 @@ import re
 from typing import Any, Dict, Union
 from .file_utils import f_join
 
+def extract_json_from_markdown(content: str) -> str:
+    """
+    Extract JSON content from a Markdown code block (e.g., ```json ... ```).
+    
+    Args:
+        content (str): The content containing the Markdown code block.
+    
+    Returns:
+        str: The extracted JSON content, or an empty string if no valid JSON block is found.
+    """
+    pattern = r"```json\s*(.*?)\s*```"
+    match = re.search(pattern, content, re.DOTALL)  # DOTALL allows `.` to match newlines
+    if match:
+        return match.group(1).strip()  # Extract the JSON content inside the code block
+    return ""  # Return an empty string if no match is found
 
 def json_load(*file_path, **kwargs):
     file_path = f_join(file_path)

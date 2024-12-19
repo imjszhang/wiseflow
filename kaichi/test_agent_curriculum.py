@@ -11,7 +11,6 @@ async def main():
         ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
         observation_dir=os.path.join(kaichi_dir, "../"),  # 观察目录（项目根目录）
         mode="auto",
-        source_content="This is a test source content",
         max_retries=3,
         log_level="DEBUG",
         cache_size=10
@@ -21,27 +20,38 @@ async def main():
     print("Initializing CurriculumAgent...")
     agent = CurriculumAgent(config)
 
-    # 提取并保存观察数据
-    agent.extract_and_save_observation()
-    print("Project observation data extracted and saved.")
-
+    # 测试项目观察数据的提取和保存
     """
-    task="用python写一个脚本获取当前项目的文件目录"
     try:
-        # Get task and context
-        if not task:
-            # 提议下一个任务
-            print("\nProposing next task...")
-            next_task, context = await agent.propose_next_task()
-            print(f"Next Task: {next_task}")
-        else:
-            print("\nGetting task context...")
-            print(f"Current Task:{task}")
-            context = await agent.get_task_context(task)
-
+        print("\nExtracting and saving project observation data...")
+        agent.extract_and_save_observation()
+        print("Project observation data extracted and saved successfully.")
+    except Exception as e:
+        print(f"Failed to extract and save observation data: {e}")
+        return
+    """
+        
+    # 测试任务提议功能
+    try:
+        print("\nProposing next task...")
+        next_task, context = await agent.propose_next_task()
+        agent._save_state()
+        print(f"Next Task: {next_task}")
         print(f"Task Context:\n{context}")
     except Exception as e:
         print(f"Failed to propose next task: {e}")
+        return
+
+    # 测试任务上下文生成
+    """
+    try:
+        print("\nGetting task context for a specific task...")
+        task = "用python写一个脚本获取当前项目的文件目录"
+        context = await agent.get_task_context(task)
+        print(f"Task: {task}")
+        print(f"Task Context:\n{context}")
+    except Exception as e:
+        print(f"Failed to get task context: {e}")
         return
     """
 
