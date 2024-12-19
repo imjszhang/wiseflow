@@ -6,9 +6,15 @@ from typing import Dict, List, Optional
 
 class ProjectObserver:
     """观察项目目录，提取信息并保存到目标目录"""
-    def __init__(self, source_dir: str, target_dir: str):
+    def __init__(self, source_dir: str, target_dir: str, 
+                 exclude_dirs: Optional[List[str]] = None, 
+                 exclude_files: Optional[List[str]] = None, 
+                 key_files: Optional[List[str]] = None):
         self.source_dir = source_dir  # 源目录
         self.target_dir = target_dir  # 目标目录
+        self.exclude_dirs = exclude_dirs or ["kaichi","__pycache__","node_modules",".git"]  # 要排除的文件夹
+        self.exclude_files = exclude_files or [".DS_Store", "Thumbs.db",".env"]  # 要排除的文件
+        self.key_files = key_files or ["README.md", "config.yaml"]  # 默认关键文件列表
 
         # 确保目标目录存在
         os.makedirs(self.target_dir, exist_ok=True)
@@ -38,20 +44,23 @@ class ProjectObserver:
         """
         structure = []
         for root, dirs, files in os.walk(self.source_dir):
+            # 过滤掉排除的文件夹
+            dirs[:] = [d for d in dirs if d not in self.exclude_dirs]
             for name in files:
-                structure.append(os.path.relpath(os.path.join(root, name), self.source_dir))
+                # 过滤掉排除的文件
+                if name not in self.exclude_files:
+                    structure.append(os.path.relpath(os.path.join(root, name), self.source_dir))
         return structure
 
     def _extract_key_files(self) -> Dict[str, Optional[str]]:
         """
-        提取关键文件的内容（如 README、配置文件等）。
+        提取关键文件的内容。
         :return: 关键文件内容字典
         """
-        key_files = ["README.md", "config.yaml"]
         extracted_files = {}
-        for key_file in key_files:
+        for key_file in self.key_files:
             file_path = os.path.join(self.source_dir, key_file)
-            if os.path.exists(file_path):
+            if os.path.exists(file_path) and key_file not in self.exclude_files:
                 try:
                     with open(file_path, "r", encoding="utf-8") as f:
                         extracted_files[key_file] = f.read()
@@ -71,11 +80,15 @@ class ProjectObserver:
         file_count = 0
         dir_count = 0
         for root, dirs, files in os.walk(self.source_dir):
+            # 过滤掉排除的文件夹
+            dirs[:] = [d for d in dirs if d not in self.exclude_dirs]
             dir_count += len(dirs)
-            file_count += len(files)
             for name in files:
-                file_path = os.path.join(root, name)
-                total_size += os.path.getsize(file_path)
+                # 过滤掉排除的文件
+                if name not in self.exclude_files:
+                    file_count += 1
+                    file_path = os.path.join(root, name)
+                    total_size += os.path.getsize(file_path)
         return {
             "file_count": file_count,
             "dir_count": dir_count,
@@ -89,16 +102,17 @@ class ProjectObserver:
         """
         log_dir = os.path.join(self.source_dir, "logs")
         summaries = []
-        if os.path.exists(log_dir):
+        if os.path.exists(log_dir) and "logs" not in self.exclude_dirs:
             for log_file in os.listdir(log_dir):
-                log_path = os.path.join(log_dir, log_file)
-                if os.path.isfile(log_path):
-                    try:
-                        with open(log_path, "r", encoding="utf-8") as f:
-                            lines = f.readlines()
-                            summaries.append(f"{log_file}: {lines[:5]}")  # 提取前 5 行作为摘要
-                    except Exception as e:
-                        print(f"Failed to read log file {log_file}: {e}")
+                if log_file not in self.exclude_files:
+                    log_path = os.path.join(log_dir, log_file)
+                    if os.path.isfile(log_path):
+                        try:
+                            with open(log_path, "r", encoding="utf-8") as f:
+                                lines = f.readlines()
+                                summaries.append(f"{log_file}: {lines[:5]}")  # 提取前 5 行作为摘要
+                        except Exception as e:
+                            print(f"Failed to read log file {log_file}: {e}")
         return summaries
 
     def _analyze_code(self) -> Dict:
@@ -115,8 +129,11 @@ class ProjectObserver:
         }
 
         for root, dirs, files in os.walk(self.source_dir):
+            # 过滤掉排除的文件夹
+            dirs[:] = [d for d in dirs if d not in self.exclude_dirs]
             for file in files:
-                if file.endswith(".py"):  # 仅分析 Python 文件
+                # 过滤掉排除的文件
+                if file not in self.exclude_files and file.endswith(".py"):  # 仅分析 Python 文件
                     file_path = os.path.join(root, file)
                     try:
                         with open(file_path, "r", encoding="utf-8") as f:

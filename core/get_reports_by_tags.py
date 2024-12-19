@@ -164,6 +164,11 @@ if __name__ == "__main__":
     comment = ""
 
     async def main():
+        """
+        主流程：
+        1. 根据用户选择的标签获取符合条件的 insight_id 列表。
+        2. 调用 /report 接口生成报告。
+        """
         # 获取符合条件的 insight_ids
         insight_ids = await fetch_insight_ids_by_tags(tags)
         if not insight_ids:

@@ -58,6 +58,7 @@ async def send_to_feed_api(urls: List[str], user_id: str = "script_user"):
             retries = 0
             while retries < MAX_RETRIES:
                 try:
+                    # 发送 POST 请求到 /feed 接口
                     response = await client.post(FEED_API_URL, json=payload)
                     if response.status_code == 200:
                         print(f"成功解析链接: {url}")
@@ -81,6 +82,15 @@ async def send_to_feed_api(urls: List[str], user_id: str = "script_user"):
 def main():
     """
     主函数，读取 CSV 文件并调用 /feed 接口。
+    
+    该函数从命令行参数中获取 CSV 文件路径和列名，提取列中的链接，
+    然后调用异步函数 send_to_feed_api 解析这些链接。
+    
+    命令行用法:
+        python get_insights_from_csv.py <csv_file_path> <column_name>
+    
+    示例:
+        python get_insights_from_csv.py data.csv links
     """
     if len(sys.argv) < 3:
         print("用法: python get_insights_from_csv.py <csv_file_path> <column_name>")

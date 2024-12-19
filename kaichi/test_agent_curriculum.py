@@ -9,7 +9,7 @@ async def main():
     # 配置 CurriculumAgent
     config = CurriculumConfig(
         ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
-        observation_dir=os.path.join(kaichi_dir, "../core"),  # 观察目录（项目根目录下的 core）
+        observation_dir=os.path.join(kaichi_dir, "../"),  # 观察目录（项目根目录）
         mode="auto",
         source_content="This is a test source content",
         max_retries=3,

@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
-# when you use this general crawler, remember followings
-# When you receive flag -7, it means that the problem occurs in the HTML fetch process.
-# When you receive flag 0, it means that the problem occurred during the content parsing process.
-# when you receive flag 1, the result would be a tuple, means that the input url is possible a article_list page
-# and the set contains the url of the articles.
-# when you receive flag 11, you will get the dict contains the title, content, url, date, and the source of the article.
+# General Crawler
+# This script is designed to extract content from web pages, including articles and article lists.
+# It uses multiple methods (e.g., GNE, LLMs) to parse and extract information from HTML content.
 
 from gne import GeneralNewsExtractor
 import httpx
@@ -22,12 +19,15 @@ from typing import Union
 from requests.compat import urljoin
 from scrapers import scraper_map
 
-# 动态选择 LLM 提供商
-LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # 默认使用 dify
+# Dynamically select LLM provider based on environment variable
+LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # Default to "dify"
 
 def select_llm():
     """
-    根据环境变量选择 LLM 提供商。
+    Select the LLM provider based on the environment variable.
+
+    :return: The selected LLM function (either OpenAI or Dify).
+    :raises ValueError: If the LLM provider is unsupported.
     """
     if LLM_PROVIDER == "openai":
         return openai_llm
@@ -36,15 +36,27 @@ def select_llm():
     else:
         raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
 
-# 动态选择 LLM
+# Initialize the LLM
 llm = select_llm()
 
+# Default model for HTML parsing
 model = os.environ.get('HTML_PARSE_MODEL', 'gpt-4o-mini-2024-07-18')
+
+# HTTP headers for requests
 header = {
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/604.1 Edg/112.0.100.0'}
+    'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/604.1 Edg/112.0.100.0'
+}
+
+# Initialize the GNE extractor
 extractor = GeneralNewsExtractor()
 
 def tag_visible(element: Comment) -> bool:
+    """
+    Check if an HTML element is visible.
+
+    :param element: The HTML element to check.
+    :return: True if the element is visible, False otherwise.
+    """
     if element.parent.name in ["style", "script", "head", "title", "meta", "[document]"]:
         return False
     if isinstance(element, Comment):
@@ -52,6 +64,12 @@ def tag_visible(element: Comment) -> bool:
     return True
 
 def text_from_soup(soup: BeautifulSoup) -> str:
+    """
+    Extract visible text from a BeautifulSoup object.
+
+    :param soup: The BeautifulSoup object.
+    :return: The extracted visible text.
+    """
     res = []
     texts = soup.find_all(string=True)
     visible_texts = filter(tag_visible, texts)
@@ -60,6 +78,7 @@ def text_from_soup(soup: BeautifulSoup) -> str:
     text = "\n".join(res)
     return text.strip()
 
+# System prompt for LLM
 sys_info = '''Your task is to operate as an HTML content extractor, focusing on parsing a provided HTML segment. Your objective is to retrieve the following details directly from the raw text within the HTML, without summarizing or altering the content:
 
 - The document's title
@@ -80,25 +99,25 @@ It is essential that your output adheres strictly to this format, with each fiel
 
 async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
     """
-    Return article information dict and flag, negative number is error, 0 is no result, 1 is for article_list page,
-    11 is success
+    General crawler to extract article information or article list from a given URL.
 
-    main work flow:
-    (for weixin public account articles, which startswith mp.weixin.qq use mp_crawler)
-    first get the content with httpx
-    then judge is article list (return all article url and flag 1) or article detail page
-    then try to use gne to extract the information
-    when fail, try to use a llm to analysis the html
+    :param url: The URL to crawl.
+    :param logger: Logger instance for logging.
+    :return: A tuple containing a flag and the extracted data.
+             Flags:
+             - -7: Error during HTML fetch process.
+             - 0: Error during content parsing process.
+             - 1: The URL is likely an article list page (returns a set of article URLs).
+             - 11: Success (returns a dictionary with article details).
     """
-
-    # 0. if there's a scraper for this domain, use it (such as mp.weixin.qq.com)
+    # 0. Check if there's a specific scraper for this domain
     parsed_url = urlparse(url)
     domain = parsed_url.netloc
     base_url = f"{parsed_url.scheme}://{domain}"
     if domain in scraper_map:
         return await scraper_map[domain](url, logger)
 
-    # 1. get the content with httpx
+    # 1. Fetch the HTML content using httpx
     async with httpx.AsyncClient() as client:
         for retry in range(2):
             try:
@@ -107,81 +126,63 @@ async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
                 break
             except Exception as e:
                 if retry < 1:
-                    logger.info(f"can not reach\n{e}\nwaiting 1min")
+                    logger.info(f"Cannot reach {url}\n{e}\nWaiting 1 minute...")
                     await asyncio.sleep(60)
                 else:
                     logger.error(e)
                     return -7, {}
 
-    # 2. judge is article list (return all article url and flag 1) or article detail page
+    # 2. Parse the HTML content
         page_source = response.text
-        if page_source:
-            text = page_source
-        else:
+        if not page_source:
             try:
-                text = response.content.decode('utf-8')
+                page_source = response.content.decode('utf-8')
             except UnicodeDecodeError:
                 try:
-                    text = response.content.decode('gbk')
+                    page_source = response.content.decode('gbk')
                 except Exception as e:
-                    logger.error(f"can not decode html {e}")
+                    logger.error(f"Cannot decode HTML: {e}")
                     return -7, {}
 
-        soup = BeautifulSoup(text, "html.parser")
-        # Note: The scheme used here is very crude,
-        # it is recommended to write a separate parser for specific business scenarios
-        # Parse all URLs
+        soup = BeautifulSoup(page_source, "html.parser")
+
+        # Check if the URL is an article list page
         if len(url) < 50:
             urls = set()
             for link in soup.find_all("a", href=True):
                 absolute_url = urljoin(base_url, link["href"])
                 format_url = urlparse(absolute_url)
-                # only record same domain links
                 if not format_url.netloc or format_url.netloc != domain:
                     continue
-                # remove hash fragment
                 absolute_url = f"{format_url.scheme}://{format_url.netloc}{format_url.path}{format_url.params}{format_url.query}"
                 if absolute_url != url:
                     urls.add(absolute_url)
 
             if len(urls) > 24:
-                logger.info(f"{url} is more like an article list page, find {len(urls)} urls with the same netloc")
+                logger.info(f"{url} is more like an article list page, found {len(urls)} URLs with the same domain.")
                 return 1, urls
 
-    # 3. try to use gne to extract the information
+    # 3. Extract content using GNE
     try:
-        result = extractor.extract(text)
+        result = extractor.extract(page_source)
         if 'meta' in result:
             del result['meta']
 
-        if result['title'].startswith('服务器错误') or result['title'].startswith('您访问的页面') or result[
-            'title'].startswith('403') \
-                or result['content'].startswith('This website uses cookies') or result['title'].startswith('出错了'):
-            logger.warning(f"can not get {url} from the Internet")
-            return -7, {}
-
         if len(result['title']) < 4 or len(result['content']) < 24:
-            logger.info(f"gne extract not good: {result}")
+            logger.info(f"GNE extraction not good: {result}")
             result = None
     except Exception as e:
-        logger.info(f"gne extract error: {e}")
+        logger.info(f"GNE extraction error: {e}")
         result = None
 
-    # 4. try to use a llm to analysis the html
+    # 4. Use LLM to analyze the HTML if GNE fails
     if not result:
         html_text = text_from_soup(soup)
-        html_lines = html_text.split('\n')
-        html_lines = [line.strip() for line in html_lines if line.strip()]
+        html_lines = [line.strip() for line in html_text.split('\n') if line.strip()]
         html_text = "\n".join(html_lines)
         if len(html_text) > 29999:
-            logger.info(f"{url} content too long for llm parsing")
+            logger.info(f"{url} content too long for LLM parsing.")
             return 0, {}
-
-        if not html_text or html_text.startswith('服务器错误') or html_text.startswith(
-                '您访问的页面') or html_text.startswith('403') \
-                or html_text.startswith('出错了'):
-            logger.warning(f"can not get {url} from the Internet")
-            return -7, {}
 
         messages = [
             {"role": "system", "content": sys_info},
@@ -190,15 +191,8 @@ async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
 
         try:
             if LLM_PROVIDER == "openai":
-                # OpenAI LLM 调用
-                llm_output = llm(
-                    messages,
-                    model=model,
-                    logger=logger,
-                    temperature=0.01
-                )
+                llm_output = llm(messages, model=model, logger=logger, temperature=0.01)
             elif LLM_PROVIDER == "dify":
-                # Dify LLM 调用
                 inputs = {'system': sys_info}
                 response = llm(html_text, 'html_parser', inputs=inputs, logger=logger)
                 llm_output = response['answer']
@@ -206,39 +200,24 @@ async def general_crawler(url: str, logger) -> tuple[int, Union[set, dict]]:
                 raise ValueError(f"Unsupported LLM provider: {LLM_PROVIDER}")
 
             result = json_repair.repair_json(llm_output, return_objects=True)
-            logger.debug(f"decoded_object: {result}")
-
-            if not isinstance(result, dict):
-                logger.debug("failed to parse from llm output")
-                return 0, {}
-
-            if 'title' not in result or 'content' not in result:
-                logger.debug("llm parsed result not good")
+            if not isinstance(result, dict) or 'title' not in result or 'content' not in result:
                 return 0, {}
 
         except Exception as e:
             logger.error(f"Error during LLM call: {e}")
             return 0, {}
 
-    # 5. post process
+    # 5. Post-process the extracted data
     date_str = extract_and_convert_dates(result.get('publish_time', ''))
-    if date_str:
-        result['publish_time'] = date_str
-    else:
-        result['publish_time'] = datetime.strftime(datetime.today(), "%Y%m%d")
-
-    from_site = domain.replace('www.', '')
-    from_site = from_site.split('.')[0]
+    result['publish_time'] = date_str if date_str else datetime.strftime(datetime.today(), "%Y%m%d")
+    from_site = domain.replace('www.', '').split('.')[0]
     result['content'] = f"[from {from_site}] {result['content']}"
 
     try:
         meta_description = soup.find("meta", {"name": "description"})
-        if meta_description:
-            result['abstract'] = f"[from {from_site}] {meta_description['content'].strip()}"
-        else:
-            result['abstract'] = ''
+        result['abstract'] = f"[from {from_site}] {meta_description['content'].strip()}" if meta_description else ''
     except Exception:
         result['abstract'] = ''
 
     result['url'] = url
-    return 11,  result
+    return 11, result

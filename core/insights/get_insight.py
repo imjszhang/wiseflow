@@ -8,9 +8,11 @@ from utils.pb_api import PbTalker
 from utils.prompt_utils import load_prompt_template
 from config import CONFIG
 
+# 模型名称配置
 get_info_model = os.environ.get("GET_INFO_MODEL", "gpt-4o-mini-2024-07-18")
 rewrite_model = os.environ.get("REWRITE_MODEL", "gpt-4o-mini-2024-07-18")
 
+# 初始化日志
 project_dir = CONFIG["PROJECT_DIR"]
 if project_dir:
     os.makedirs(project_dir, exist_ok=True)
@@ -24,19 +26,22 @@ logger.add(
     rotation="50 MB"
 )
 
+# 初始化 PbTalker
 pb = PbTalker(logger)
 
+# 从数据库中读取激活的标签
 focus_data = pb.read(collection_name='tags', filter=f'activated=True')
 if not focus_data:
-    logger.error('no activated tag found, please set at least one')
+    logger.error('No activated tag found, please set at least one.')
     exit(1)
 
+# 提取标签和说明
 focus_list = [item["name"] for item in focus_data if item["name"]]
 focus_dict = {item["name"]: item["id"] for item in focus_data if item["name"]}
 lang_term = ''.join([f'{item["name"]}{item["explaination"]}' for item in focus_data if item["name"]])
 focus_statement = '\n'.join([f'<tag>{item["name"]}</tag>\n{item["explaination"]}\n' for item in focus_data if item["name"] and item["explaination"]])
 
-# 定义模板文件路径
+# 定义提示词模板文件路径
 PROMPT_DIR = "prompts"
 PROMPT_DIR = os.path.join(PROMPT_DIR, "insights")
 language = "zh" if is_chinese(lang_term) else "zh"
@@ -57,13 +62,15 @@ except FileNotFoundError as e:
     logger.error(f"Failed to load prompt templates: {e}")
     exit(1)
 
-
-# 增加 LLM 选择逻辑
+# 动态选择 LLM 提供商
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # 默认使用 dify
 
 def select_llm():
     """
     根据环境变量选择 LLM 提供商。
+
+    :return: LLM 提供商的调用函数
+    :raises ValueError: 如果提供商不支持
     """
     if LLM_PROVIDER == "openai":
         return openai_llm
@@ -79,8 +86,8 @@ def get_insights(article_content: str) -> list[dict]:
     """
     从文章内容中提取与用户关注的标签相关的洞察信息。
 
-    :param article_content: 文章内容
-    :return: 包含提取信息的列表，每个元素是一个字典，包含 'content' 和 'tag'
+    :param article_content: str - 文章内容
+    :return: list[dict] - 包含提取信息的列表，每个元素是一个字典，包含 'content' 和 'tag'
     """
     inputs = {'system': system_prompt}
     try:
@@ -105,14 +112,13 @@ def get_insights(article_content: str) -> list[dict]:
     insights = parse_llm_output(result, article_content)
     return insights
 
-
 def parse_llm_output(result: str, article_content: str) -> list[dict]:
     """
     解析 LLM 的输出，提取标签和相关信息。
 
-    :param result: LLM 的输出结果
-    :param article_content: 原始文章内容，用于提取来源信息
-    :return: 包含提取信息的列表，每个元素是一个字典，包含 'content' 和 'tag'
+    :param result: str - LLM 的输出结果
+    :param article_content: str - 原始文章内容，用于提取来源信息
+    :return: list[dict] - 包含提取信息的列表，每个元素是一个字典，包含 'content' 和 'tag'
     """
     # 分割并过滤 LLM 输出
     texts = [text.strip() for text in result.split('<tag>') if '</tag>' in text.strip()]
@@ -134,13 +140,12 @@ def parse_llm_output(result: str, article_content: str) -> list[dict]:
 
     return insights
 
-
 def extract_tag_and_info(text: str) -> tuple[str, str]:
     """
     从文本块中提取标签和信息。
 
-    :param text: 文本块，格式为 "<tag>标签</tag>信息"
-    :return: 标签和信息的元组
+    :param text: str - 文本块，格式为 "<tag>标签</tag>信息"
+    :return: tuple[str, str] - 标签和信息的元组
     """
     try:
         tag, info = text.split('</tag>', 1)
@@ -162,22 +167,26 @@ def extract_tag_and_info(text: str) -> tuple[str, str]:
         logger.info(f'Error parsing text block: {e}')
         return '', ''
 
-
 def append_source_info(info: str, article_content: str) -> str:
     """
     为信息添加来源信息。
 
-    :param info: 提取的信息
-    :param article_content: 原始文章内容，用于提取来源
-    :return: 添加来源信息后的信息
+    :param info: str - 提取的信息
+    :param article_content: str - 原始文章内容，用于提取来源
+    :return: str - 添加来源信息后的信息
     """
     sources = re.findall(r'\[from (.*?)]', article_content)
     if sources and sources[0]:
         return f"[from {sources[0]}] {info}"
     return info
 
-# insight_rewrite 函数
 def insight_rewrite(contents: list[str]) -> str:
+    """
+    重写洞察内容。
+
+    :param contents: list[str] - 洞察内容列表
+    :return: str - 重写后的洞察内容
+    """
     context = f"<content>{'</content><content>'.join(contents)}</content>"
     try:
         if LLM_PROVIDER == "openai":

@@ -7,7 +7,6 @@ from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from datetime import datetime
-
 from llms.openai_wrapper import openai_llm
 from llms.dify_wrapper import dify_llm
 from loguru import logger
@@ -15,31 +14,48 @@ from utils.general_utils import get_logger_level, isChinesePunctuation
 from utils.pb_api import PbTalker
 from utils.prompt_utils import load_prompt_template
 import uuid
+
+
 class ReportService:
+    """
+    报告生成服务类，用于根据 insight 和相关文章生成报告并保存为 Word 文档。
+    """
+
     def __init__(self):
+        """
+        初始化 ReportService，包括日志、缓存目录和内存存储。
+        """
         self.project_dir = os.environ.get("PROJECT_DIR", "")
-        # 1. base initialization
+        # 初始化缓存目录
         self.cache_url = os.path.join(self.project_dir, 'backend_service')
         os.makedirs(self.cache_url, exist_ok=True)
 
-        # 2. load the llm
-        # self.llm = LocalLlmWrapper()
+        # 内存存储，用于缓存 insight 的历史数据
         self.memory = {}
-        # self.scholar = Scholar(initial_file_dir=os.path.join(self.project_dir, "files"), use_gpu=use_gpu)
-        logger.info('backend service init success.')
+
+        logger.info('Backend service initialized successfully.')
 
     async def report(self, insight_id: str, topics: list[str], comment: str) -> dict:
-        logger.debug(f'got new report request insight_id {insight_id}')
+        """
+        根据 insight ID 和相关文章生成报告。
+
+        :param insight_id: str - insight 的唯一标识符
+        :param topics: list[str] - 报告的主题列表
+        :param comment: str - 用户的附加评论
+        :return: dict - 包含生成状态和结果的字典
+        """
+        logger.debug(f'Got new report request for insight_id {insight_id}')
         insight = pb.read('insights', filter=f'id="{insight_id}"')
         if not insight:
-            logger.error(f'insight {insight_id} not found')
-            return self.build_out(-2, 'insight not found')
+            logger.error(f'Insight {insight_id} not found')
+            return self.build_out(-2, 'Insight not found')
 
         article_ids = insight[0]['articles']
         if not article_ids:
-            logger.error(f'insight {insight_id} has no articles')
-            return self.build_out(-2, 'can not find articles for insight')
+            logger.error(f'Insight {insight_id} has no articles')
+            return self.build_out(-2, 'Cannot find articles for insight')
 
+        # 获取相关文章
         article_list = [pb.read('articles', fields=['title', 'abstract', 'content', 'url', 'publish_time'], filter=f'id="{_id}"')
                         for _id in article_ids]
         article_list = [_article[0] for _article in article_list if _article]
@@ -49,33 +65,37 @@ class ReportService:
             return self.build_out(-2, f'{insight_id} has no valid articles')
 
         content = insight[0]['content']
-        if insight_id in self.memory:
-            memory = self.memory[insight_id]
-        else:
-            memory = ''
+        memory = self.memory.get(insight_id, '')
 
+        # 生成报告并保存为 Word 文档
         docx_file = os.path.join(self.cache_url, f'{insight_id}_{uuid.uuid4()}.docx')
         flag, memory = await get_report(content, article_list, memory, topics, comment, docx_file)
         self.memory[insight_id] = memory
 
         if flag:
+            # 上传生成的报告到 PB
             file = open(docx_file, 'rb')
             message = pb.upload('insights', insight_id, 'docx', f'{insight_id}.docx', file)
             file.close()
             if message:
-                logger.debug(f'report success finish and update to: {message}')
+                logger.debug(f'Report successfully generated and uploaded: {message}')
                 return self.build_out(11, message)
             else:
-                logger.error(f'{insight_id} report generate successfully, however failed to update to pb.')
-                return self.build_out(-2, 'report generate successfully, however failed to update to pb.')
+                logger.error(f'{insight_id} report generated successfully, but failed to upload to PB.')
+                return self.build_out(-2, 'Report generated successfully, but failed to upload to PB.')
         else:
-            logger.error(f'{insight_id} failed to generate report, finish.')
-            return self.build_out(-11, 'report generate failed.')
+            logger.error(f'{insight_id} failed to generate report.')
+            return self.build_out(-11, 'Report generation failed.')
 
     def build_out(self, flag: int, answer: str = "") -> dict:
+        """
+        构建返回结果。
+
+        :param flag: int - 状态码
+        :param answer: str - 返回的消息
+        :return: dict - 包含状态码和消息的字典
+        """
         return {"flag": flag, "result": [{"type": "text", "answer": answer}]}
-
-
 
 
 # 初始化日志
@@ -137,6 +157,17 @@ except FileNotFoundError as e:
     exit(1)
 
 async def get_report(insight: str, articles: list[dict], memory: str, topics: list[str], comment: str, docx_file: str):
+    """
+    根据 insight 和相关文章生成报告并保存为 Word 文档。
+
+    :param insight: str - insight 的内容
+    :param articles: list[dict] - 相关文章列表
+    :param memory: str - 历史报告内容
+    :param topics: list[str] - 报告的主题列表
+    :param comment: str - 用户的附加评论
+    :param docx_file: str - 保存的 Word 文档路径
+    :return: tuple[bool, str] - 是否成功生成报告和生成的报告内容
+    """
     zh_index = ['一', '二', '三', '四', '五', '六', '七', '八', '九', '十', '十一', '十二']
 
     if isChinesePunctuation(insight[-1]):
