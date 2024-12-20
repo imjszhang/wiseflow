@@ -12,13 +12,14 @@ from utils.json_utils import fix_and_parse_json
 
 @dataclass
 class CriticConfig:
-    """Critic Agent Configuration"""
+    """Configuration for Critic Agent"""
     ckpt_dir: str = "work_dir/ckpt"
-    mode: str = "auto"  # auto or manual
+    mode: str = "auto"  # Modes: auto or manual
+    observation_dir: str = os.path.abspath(os.path.dirname(__file__))  # 源目录
     max_retries: int = 5
     log_level: str = "INFO"
     cache_size: int = 100
-    temperature: float = 0
+    temperature: float = 0.0
 
     def __post_init__(self):
         """Validate configuration"""
@@ -36,16 +37,15 @@ class CriticCache:
         self.last_used = {}
         
     def add(self, key: str, value: Dict):
-        """Add item to cache"""
+        """Add an item to the cache"""
         if len(self.cache) >= self.max_size:
             self._remove_least_used()
-            
         self.cache[key] = value
         self.usage_count[key] = 0
         self.last_used[key] = time.time()
         
     def get(self, key: str) -> Optional[Dict]:
-        """Retrieve item from cache"""
+        """Retrieve an item from the cache"""
         if key in self.cache:
             self.usage_count[key] += 1
             self.last_used[key] = time.time()
@@ -53,19 +53,17 @@ class CriticCache:
         return None
         
     def _remove_least_used(self):
-        """Remove least used item"""
+        """Remove the least used item from the cache"""
         if not self.usage_count:
             return
-            
         min_usage = min(self.usage_count.values())
         to_remove = next(k for k, v in self.usage_count.items() if v == min_usage)
-        
         self.cache.pop(to_remove, None)
         self.usage_count.pop(to_remove, None)
         self.last_used.pop(to_remove, None)
 
 class CriticAgent:
-    """Critic Agent for code and task evaluation"""
+    """Critic Agent for evaluating code and tasks"""
     def __init__(self, config: Optional[CriticConfig] = None):
         self.config = config or CriticConfig()
         self.llm = dify_llm_async
@@ -99,17 +97,15 @@ class CriticAgent:
         """Load prompt templates"""
         return {
             'system': load_prompt("critic/system"),
-            'task': load_prompt("critic/task"),
-            'code': load_prompt("critic/code")
+            'human': load_prompt("critic/human"),
         }
 
     def _init_system(self):
-        """Initialize system"""
+        """Initialize system components"""
         try:
             self._init_directories()
             self.cache = CriticCache(self.config.cache_size)
             self._load_state()
-            
         except Exception as e:
             self.logger.error(f"System initialization failed: {e}")
             raise RuntimeError("Failed to initialize CriticAgent") from e
@@ -117,49 +113,32 @@ class CriticAgent:
     def _init_directories(self):
         """Initialize directory structure"""
         base_dir = f"{self.config.ckpt_dir}/critic"
-        dirs = [
-            base_dir,
-            f"{base_dir}/cache"
-        ]
+        dirs = [base_dir, f"{base_dir}/cache"]
         for dir_path in dirs:
             os.makedirs(dir_path, exist_ok=True)
             self.logger.debug(f"Directory created/verified: {dir_path}")
 
     def _load_state(self):
-        """Load saved state"""
+        """Load saved state from disk"""
         try:
             base_path = self._get_base_path()
-            
-            # Load cache states
             cache_path = f"{base_path}/cache/critic_cache.json"
             if os.path.exists(cache_path):
                 cache_data = U.load_json(cache_path)
                 self.cache = CriticCache()
                 for key, value in cache_data.items():
                     self.cache.add(key, value)
-                
             self.logger.info(f"Loaded {len(self.cache.cache)} cache entries")
-            
         except Exception as e:
             self.logger.warning(f"Failed to load state: {e}")
 
     def _save_state(self):
-        """Save current state"""
+        """Save current state to disk"""
         try:
             base_path = self._get_base_path()
-            
-            # Save cache
-            cache_data = {
-                key: value 
-                for key, value in self.cache.cache.items()
-            }
-            U.dump_json(
-                cache_data,
-                f"{base_path}/cache/critic_cache.json"
-            )
-            
+            cache_data = {key: value for key, value in self.cache.cache.items()}
+            U.dump_json(cache_data, f"{base_path}/cache/critic_cache.json")
             self.logger.debug("State saved successfully")
-            
         except Exception as e:
             self.logger.error(f"Failed to save state: {e}")
             raise
@@ -169,47 +148,52 @@ class CriticAgent:
         return f"{self.config.ckpt_dir}/critic"
 
     def render_system_message(self) -> Dict[str, str]:
-        """Render system message"""
+        """
+        Render the system message for the LLM.
+
+        Returns:
+            Dict[str, str]: A dictionary containing the system message content.
+        """
         try:
-            return {"content": self.prompts['system']}
-            
+            # 使用提示词模板生成系统消息
+            system_message = {
+                "content": self.prompts['system']
+            }
+            self.logger.debug(f"System message rendered: {system_message['content']}")
+            return system_message
         except Exception as e:
             self.logger.error(f"Failed to render system message: {e}")
-            raise
+            raise RuntimeError("Failed to render system message") from e
 
-    def render_human_message(
-        self,
-        task: str,
-        context: str,
-        code: str
-    ) -> Dict[str, str]:
-        """Render human message"""
+    def render_human_message(self, task: str, context: str, code: str) -> Dict[str, str]:
+        """
+        Render the human message for the LLM.
+
+        Args:
+            task (str): The name of the task being evaluated.
+            context (str): The context or background information for the task.
+            code (str): The code implementation to be evaluated.
+
+        Returns:
+            Dict[str, str]: A dictionary containing the human message content.
+        """
         try:
-            message = [
-                f"Task: {task}",
-                f"Context: {context}",
-                f"Code: {code}"
-            ]
-            
-            content = "\n\n".join(message)
-            self.logger.debug(f"Human message:\n{content}")
-            
-            return {"content": content}
-            
+            # 构建人类消息内容
+            human_message_content = self.prompts['human'].replace("{{task}}", task) \
+                                                        .replace("{{context}}", context) \
+                                                        .replace("{{code}}", code)
+            human_message = {
+                "content": human_message_content
+            }
+            self.logger.debug(f"Human message rendered: {human_message['content']}")
+            return human_message
         except Exception as e:
             self.logger.error(f"Failed to render human message: {e}")
-            raise
+            raise RuntimeError("Failed to render human message") from e
 
-    async def check_task_success(
-        self,
-        task: str,
-        context: str,
-        code: str,
-        max_retries: Optional[int] = None
-    ) -> Tuple[bool, str]:
-        """Check if task implementation is successful"""
+    async def check_task_success(self, task: str, context: str, code: str, max_retries: Optional[int] = None) -> Tuple[bool, str]:
+        """Check if the task implementation is successful"""
         retries = max_retries or self.config.max_retries
-        
         try:
             # Check cache
             cache_key = f"{task}_{code}"
@@ -237,7 +221,6 @@ class CriticAgent:
                 
             # Parse response
             result = fix_and_parse_json(response["answer"])
-            
             success = result.get("success", False)
             critique = result.get("critique", "")
             
@@ -247,27 +230,15 @@ class CriticAgent:
                 "critique": critique,
                 "timestamp": time.time()
             })
-            
             return success, critique
-            
         except Exception as e:
             self.logger.error(f"Task check failed: {e}")
             if retries > 0:
                 self.logger.info(f"Retrying... ({retries} attempts left)")
-                return await self.check_task_success(
-                    task,
-                    context, 
-                    code,
-                    retries - 1
-                )
+                return await self.check_task_success(task, context, code, retries - 1)
             return False, str(e)
 
-    async def _human_check_task(
-        self,
-        task: str,
-        context: str,
-        code: str
-    ) -> Tuple[bool, str]:
+    async def _human_check_task(self, task: str, context: str, code: str) -> Tuple[bool, str]:
         """Manual task checking by human"""
         while True:
             print("\nTask Review:")
@@ -281,35 +252,3 @@ class CriticAgent:
             confirm = input("\nConfirm review? (y/n): ").lower()
             if confirm in ['y', '']:
                 return success, critique
-
-    async def check_code_quality(
-        self,
-        code: str,
-        requirements: Optional[str] = None
-    ) -> Dict:
-        """Check code quality and standards"""
-        try:
-            prompt = self.prompts['code'].replace(
-                "{{code}}", code
-            ).replace(
-                "{{requirements}}", requirements or ""
-            )
-            
-            response = await self.llm(
-                query="Evaluate code quality",
-                user="CriticAgent",
-                inputs={"system": prompt},
-                logger=self.logger
-            )
-            
-            if "error" in response:
-                raise ValueError(f"LLM error: {response['error']}")
-                
-            result = fix_and_parse_json(response["answer"])
-            result["timestamp"] = time.time()
-            
-            return result
-            
-        except Exception as e:
-            self.logger.error(f"Code quality check failed: {e}")
-            raise

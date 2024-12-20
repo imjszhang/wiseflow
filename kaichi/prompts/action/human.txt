@@ -1,10 +1,26 @@
 Based on the following task requirements and context, implement a solution.
 
-Context:
-{{context}}
 
-Task:
-{{task}}
+#### Task Details:
+
+- **Task Name**: {{task}}
+
+- **Context**: {{context}}
+
+
+#### Current Code:
+
+{{code}}
+
+
+#### Observed Events:
+
+{{events}}
+
+
+#### Critique or Feedback:
+
+{{critique}}
 
 Requirements:
 1. Implementation Details

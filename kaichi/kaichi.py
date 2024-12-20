@@ -1,18 +1,23 @@
+#Filename: kaichi.py
 import os
 import time
 import logging
 from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
-from agents.curriculum import CurriculumAgent
-from agents.skill import SkillManager
-from agents.action import ActionAgent
-from agents.critic import CriticAgent
+
+from env import ProjectEnv  
+from agents.curriculum import CurriculumAgent, CurriculumConfig
+from agents.skill import SkillManager, SkillManagerConfig, SkillCache
+from agents.action import ActionAgent, ActionConfig
+from agents.critic import CriticAgent, CriticConfig
 import utils as U
 
 @dataclass
 class AgentConfig:
     max_iterations: int = 160
     max_retries: int = 5
+    env_timeout: int = 5  # ProjectEnv 的超时时间
+    log_path: str = "work_dir/logs"  # ProjectEnv 的日志路径
     observation_dir: str = os.path.abspath(os.path.dirname(__file__))
     ckpt_dir: str = "work_dir/ckpt"
     resume: bool = False
@@ -21,10 +26,13 @@ class AgentConfig:
 
 @dataclass 
 class AgentState:
+    env: Optional[ProjectEnv] = None  # 使用 ProjectEnv
     current_task: Optional[str] = None
+    context: Optional[str] = None
     iteration: int = 0
     success_count: int = 0
     failure_count: int = 0
+    last_state: Optional[Dict] = None  # 记录上一次的状态
 
 class AgentMetrics:
     def __init__(self):
@@ -43,36 +51,6 @@ class AgentMetrics:
         self.success_rate = (self.success_rate * (self.steps - 1) + int(success)) / self.steps
         self.avg_response_time = (self.avg_response_time * (self.steps - 1) + response_time) / self.steps
 
-class SkillCache:
-    def __init__(self, max_size: int = 100):
-        self.max_size = max_size
-        self.skills = {}
-        self.usage_count = {}
-        self.last_used = {}
-        
-    def add(self, name: str, content: str):
-        if len(self.skills) >= self.max_size:
-            # Remove least used skill
-            min_usage = min(self.usage_count.values())
-            to_remove = [k for k,v in self.usage_count.items() if v == min_usage][0]
-            self._remove(to_remove)
-            
-        self.skills[name] = content
-        self.usage_count[name] = 0
-        self.last_used[name] = time.time()
-        
-    def get(self, name: str) -> Optional[str]:
-        if name in self.skills:
-            self.usage_count[name] += 1
-            self.last_used[name] = time.time()
-            return self.skills[name]
-        return None
-        
-    def _remove(self, name: str):
-        self.skills.pop(name, None)
-        self.usage_count.pop(name, None) 
-        self.last_used.pop(name, None)
-
 class Kaichi:
     def __init__(self, config: Optional[AgentConfig] = None):
         self.config = config or AgentConfig()
@@ -80,6 +58,7 @@ class Kaichi:
         self.metrics = AgentMetrics()
         
         self._setup_logging()
+        self._init_env()
         self._init_agents()
         self._init_skill_cache()
         
@@ -99,13 +78,59 @@ class Kaichi:
         ))
         self.logger.addHandler(handler)
 
+    def _init_env(self):
+        """Initialize the environment"""
+        self.state.env = ProjectEnv(
+            timeout=self.config.env_timeout,
+            log_path=self.config.log_path
+        )
+        self.logger.info("Environment initialized successfully")
+
     def _init_agents(self):
         """Initialize all required agents"""
         try:
-            self.curriculum_agent = CurriculumAgent()
-            self.action_agent = ActionAgent()
-            self.critic_agent = CriticAgent()
-            self.skill_manager = SkillManager()
+            # 配置 CurriculumAgent
+            curriculum_config = CurriculumConfig(
+                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
+                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
+                mode="auto",
+                max_retries=3,
+                log_level="DEBUG",
+                cache_size=10
+            )
+
+            # 配置 ActionAgent
+            action_config = ActionConfig(
+                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
+                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
+                resume=False,  
+                mode="auto",
+                max_retries=3,
+                log_level="DEBUG",
+                cache_size=10,
+                temperature=0.7,
+                request_timeout=60
+            )
+
+            # 配置 CriticAgent
+            critic_config = CriticConfig(
+                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
+                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
+                log_level="DEBUG"
+            )
+
+            # Initialize skill manager
+            skill_config = SkillManagerConfig(
+                resume=self.config.resume,
+                ckpt_dir=self.config.ckpt_dir,
+                cache_size=self.config.skill_cache_size,
+                log_level=self.config.log_level
+            )
+
+            self.curriculum_agent = CurriculumAgent(curriculum_config)
+            self.action_agent = ActionAgent(action_config)
+            self.critic_agent = CriticAgent(critic_config)            
+            self.skill_manager = SkillManager(skill_config)
             self.logger.info("All agents initialized successfully")
         except Exception as e:
             self.logger.error(f"Failed to initialize agents: {e}")
@@ -128,21 +153,26 @@ class Kaichi:
             self.logger.error(f"Failed to load checkpoints: {e}")
             raise RuntimeError("Checkpoint loading failed") from e
 
-    def reset(self, task: str, context: str = "") -> List:
+    async def reset(self, task: str, context: str = "") -> List:
         """Reset agent state for new task"""
         self.logger.info(f"Resetting agent for task: {task}")
         
         self.state.current_task = task
+        self.state.context = context
         self.state.iteration = 0
         
         # Reset metrics for new task
         self.metrics.reset()
         
+        # Reset environment
+        initial_state, _ = self.state.env.reset()
+        self.state.last_state = initial_state
+
         # Load skills and prepare messages
-        skills = U.load_text(f"{self.config.ckpt_dir}/skills/skill.txt")
+        skills = await self.skill_manager.retrieve_skills(query=self.state.context)
         system_message = self.action_agent.render_system_message(skills=skills)
         human_message = self.action_agent.render_human_message(
-            code="", task=task, context=context, critique=""
+            events=[], code="", task=task, context=self.state.context, critique=""
         )
         
         self.messages = [system_message, human_message]
@@ -167,17 +197,22 @@ class Kaichi:
                 ai_message.content
             ))
 
-            # Parse and validate code
+            # Parse and execute code
             parsed_result = self._parse_code(ai_message.content)
-            success, critique = self._validate_code(parsed_result)
+            code = parsed_result["program_code"]
+            state, reward, done, _, info = self.state.env.step(code)
+            self.state.last_state = state
+
+            # Validate code execution
+            success, critique = self._validate_code(parsed_result, state)
 
             # Update messages and state
-            self._update_messages(parsed_result, critique)
+            self._update_messages(parsed_result, critique, state)
             self.state.iteration += 1
 
             # Calculate reward and check if done
             done = success or self.state.iteration >= self.config.max_retries
-            reward = 1.0 if success else 0.0
+            reward = 1.0 if success else -1.0
 
             # Update metrics
             response_time = time.time() - start_time
@@ -188,6 +223,28 @@ class Kaichi:
         except Exception as e:
             self.logger.error(f"Step error: {e}")
             return self.messages, 0, True, {"success": False, "error": str(e)}
+
+    def _validate_code(self, parsed_result: Dict, state: Dict) -> Tuple[bool, str]:
+        """Validate generated code"""
+        return self.critic_agent.check_task_success(
+            task=self.state.current_task,
+            context=self.state.context,
+            code=parsed_result["program_code"],
+            state=state,
+            max_retries=self.config.max_retries
+        )
+
+    def _update_messages(self, parsed_result: Dict, critique: str, state: Dict):
+        """Update system and human messages"""
+        system_message = self.action_agent.render_system_message(skills="")
+        human_message = self.action_agent.render_human_message(
+            events=[],  # ProjectEnv 不返回事件，使用空列表
+            code=parsed_result["program_code"],
+            task=self.state.current_task,
+            context=self.state.context,
+            critique=critique
+        )
+        self.messages = [system_message, human_message]
 
     def _validate_state(self) -> bool:
         """Validate current agent state"""
@@ -209,26 +266,6 @@ class Kaichi:
             "program_name": self.state.current_task
         }
 
-    def _validate_code(self, parsed_result: Dict) -> Tuple[bool, str]:
-        """Validate generated code"""
-        return self.critic_agent.check_task_success(
-            task=self.state.current_task,
-            context=self.context,
-            code=parsed_result["program_code"],
-            max_retries=self.config.max_retries
-        )
-
-    def _update_messages(self, parsed_result: Dict, critique: str):
-        """Update system and human messages"""
-        system_message = self.action_agent.render_system_message(skills="")
-        human_message = self.action_agent.render_human_message(
-            code=parsed_result["program_code"],
-            task=self.state.current_task,
-            context=self.context,
-            critique=critique
-        )
-        self.messages = [system_message, human_message]
-
     def _get_step_info(self, success: bool, parsed_result: Optional[Dict] = None) -> Dict:
         """Prepare step information"""
         info = {
@@ -245,11 +282,11 @@ class Kaichi:
             
         return info
 
-    def rollout(self, task: str, context: str) -> Tuple:
+    async def rollout(self, task: str, context: str) -> Tuple:
         """Execute complete task rollout"""
         self.logger.info(f"Starting rollout for task: {task}")
         
-        messages = self.reset(task=task, context=context)
+        messages = await self.reset(task=task, context=context)
         
         while True:
             messages, reward, done, info = self.step()
@@ -259,7 +296,7 @@ class Kaichi:
         self.logger.info(f"Rollout completed. Success: {info['success']}")
         return messages, reward, done, info
 
-    def learn(self, task: str = "", maxloop: int = 1):
+    async def learn(self, task: str = "", maxloop: int = 1):
         """Run agent with given task or curriculum"""
         self.logger.info(f"Starting agent run. Task: {task}, maxloop: {maxloop}")
         
@@ -268,23 +305,26 @@ class Kaichi:
             try:
                 # Get task and context
                 if not task:
-                    task, context = self.curriculum_agent.propose_next_task(
+                    task, context = await self.curriculum_agent.propose_next_task(
                         max_retries=self.config.max_retries
                     )
                 else:
-                    context = self.curriculum_agent.get_task_context(task)
+                    context = await self.curriculum_agent.get_task_context(task)
                 
                 self.logger.info(f"Executing task {task} (Loop {loop}/{maxloop})")
                 
                 # Execute task
-                messages, reward, done, info = self.rollout(
+                messages, reward, done, info = await self.rollout(
                     task=task,
                     context=context
                 )
                 
                 # Handle results
                 if info["success"]:
-                    self.action_agent.update_skill_knowledge(info)
+                    await self.skill_manager.add_skill(
+                        skill_name=info["program_name"], 
+                        skill_code=info["program_code"]
+                    )
                     self.state.success_count += 1
                 else:
                     self.state.failure_count += 1
@@ -304,22 +344,3 @@ class Kaichi:
             "total_steps": self.metrics.steps,
             "avg_response_time": self.metrics.avg_response_time
         }
-
-def main():
-    # 获取当前文件所在的目录（kaichi目录）
-    kaichi_dir = os.path.abspath(os.path.dirname(__file__))
-    config = AgentConfig(
-        max_iterations=160,
-        max_retries=5,
-        ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
-        observation_dir=os.path.join(kaichi_dir, "../"),        # 观察目录（项目根目录）
-        resume=False,
-        log_level="INFO"
-    )
-    
-    agent = Kaichi(config)
-    results = agent.learn()
-    print(f"Run completed with results: {results}")
-
-if __name__ == "__main__":
-    main()

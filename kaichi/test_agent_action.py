@@ -2,6 +2,7 @@ import asyncio
 import os
 from agents.action import ActionAgent, ActionConfig
 
+
 async def main():
     # 获取当前文件所在的目录（kaichi目录）
     kaichi_dir = os.path.abspath(os.path.dirname(__file__))
@@ -23,37 +24,6 @@ async def main():
     print("Initializing ActionAgent...")
     agent = ActionAgent(config)
 
-    try:
-        # 更新技能知识库
-        print("\nUpdating skill knowledge...")
-        skill_info = {
-            "program_name": "list_project_files",
-            "program_code": """
-import os            
-def list_project_files():
-    return [f for f in os.listdir('.') if os.path.isfile(f)]
-"""
-        }
-        await agent.update_skill_knowledge(skill_info)
-
-        # 列出所有技能
-        print("\nListing all skills...")
-        skills = agent.list_skills()
-        print(f"Available Skills: {skills}")
-
-        # 执行技能
-        print("\nExecuting skill...")
-        skill_name = "list_project_files"
-        skill_code = """
-import os            
-def list_project_files():
-    return [f for f in os.listdir('.') if os.path.isfile(f)]
-"""
-        result = await agent.execute_skill(skill_name, skill_code)
-        print(f"Execution Result: {result}")
-
-    except Exception as e:
-        print(f"An error occurred: {e}")
 
 if __name__ == "__main__":
     asyncio.run(main())

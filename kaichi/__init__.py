@@ -1,1 +1,1 @@
-from .kaichi import Kaichi
+from .kaichi import Kaichi, AgentConfig

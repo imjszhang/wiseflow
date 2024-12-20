@@ -9,7 +9,7 @@ import json
 from llms.dify_wrapper import dify_llm_async
 import utils as U
 from prompts import load_prompt
-from envs.project_observer import ProjectObserver
+from env.project_observer import ProjectObserver
 from agents.qa import QAPair, QAManager
 from agents.task import TaskProgress
 
