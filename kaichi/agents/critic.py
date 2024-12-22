@@ -165,7 +165,7 @@ class CriticAgent:
             self.logger.error(f"Failed to render system message: {e}")
             raise RuntimeError("Failed to render system message") from e
 
-    def render_human_message(self, task: str, context: str, code: str) -> Dict[str, str]:
+    def render_human_message(self, task: str, context: str, code: str, state: Dict) -> Dict[str, str]:
         """
         Render the human message for the LLM.
 
@@ -173,15 +173,32 @@ class CriticAgent:
             task (str): The name of the task being evaluated.
             context (str): The context or background information for the task.
             code (str): The code implementation to be evaluated.
+            state (Dict): The execution state containing output, error, and return code.
 
         Returns:
             Dict[str, str]: A dictionary containing the human message content.
         """
         try:
+            if state is None:
+                # Set default values
+                code_output = ""
+                code_error = ""
+                code_return = 1
+                raise ValueError("Execution state is missing")
+
+            else:
+                # Extract execution state details
+                code_output = state.get('output', '')
+                code_error = state.get('error', '')
+                code_return = state.get('return_code', 1)
+
             # 构建人类消息内容
             human_message_content = self.prompts['human'].replace("{{task}}", task) \
                                                         .replace("{{context}}", context) \
-                                                        .replace("{{code}}", code)
+                                                        .replace("{{code}}", code) \
+                                                        .replace("{{code_output}}", code_output) \
+                                                        .replace("{{code_error}}", code_error) \
+                                                        .replace("{{code_return}}", str(code_return))
             human_message = {
                 "content": human_message_content
             }
@@ -191,7 +208,7 @@ class CriticAgent:
             self.logger.error(f"Failed to render human message: {e}")
             raise RuntimeError("Failed to render human message") from e
 
-    async def check_task_success(self, task: str, context: str, code: str, max_retries: Optional[int] = None) -> Tuple[bool, str]:
+    async def check_task_success(self, task: str, context: str, code: str, state: Dict, max_retries: Optional[int] = None) -> Tuple[bool, str]:
         """Check if the task implementation is successful"""
         retries = max_retries or self.config.max_retries
         try:
@@ -206,7 +223,7 @@ class CriticAgent:
             
             # Prepare messages
             system_msg = self.render_system_message()
-            human_msg = self.render_human_message(task, context, code)
+            human_msg = self.render_human_message(task, context, code, state)
             
             # Call LLM
             response = await self.llm(
@@ -220,7 +237,8 @@ class CriticAgent:
                 raise ValueError(f"LLM error: {response['error']}")
                 
             # Parse response
-            result = fix_and_parse_json(response["answer"])
+            answer = U.extract_json_from_markdown(response["answer"])
+            result = fix_and_parse_json(answer)
             success = result.get("success", False)
             critique = result.get("critique", "")
             

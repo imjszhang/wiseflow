@@ -10,10 +10,6 @@ Based on the following task requirements and context, implement a solution.
 
 {{code}}
 
-#### Observed Events:
-
-{{events}}
-
 #### Critique or Feedback:
 
 {{critique}}

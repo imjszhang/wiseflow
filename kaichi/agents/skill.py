@@ -90,7 +90,7 @@ class SkillManager:
         self.logger = logging.getLogger("SkillManager")
         self.logger.setLevel(self.config.log_level)
         
-        log_dir = f"{self.config.ckpt_dir}/skill/logs"  # 修改此行
+        log_dir = f"{self.config.ckpt_dir}/skill/logs"  
         os.makedirs(log_dir, exist_ok=True)
         
         handler = logging.FileHandler(f"{log_dir}/skill_manager.log")
@@ -114,8 +114,8 @@ class SkillManager:
     def _init_directories(self):
         """初始化目录结构"""
         dirs = [
-            f"{self.config.ckpt_dir}/skill/code",  # 修改此行
-            f"{self.config.ckpt_dir}/skill/description"  # 修改此行
+            f"{self.config.ckpt_dir}/skill/code",  
+            f"{self.config.ckpt_dir}/skill/description"  
         ]
         for dir_path in dirs:
             os.makedirs(dir_path, exist_ok=True)
@@ -124,9 +124,9 @@ class SkillManager:
     def _load_skills(self):
         """加载技能数据"""
         if self.config.resume:
-            self.logger.info(f"Loading skills from {self.config.ckpt_dir}/skill")  # 修改此行
+            self.logger.info(f"Loading skills from {self.config.ckpt_dir}/skill")  
             try:
-                self.skills = U.load_json(f"{self.config.ckpt_dir}/skill/skills.json")  # 修改此行
+                self.skills = U.load_json(f"{self.config.ckpt_dir}/skill/skills.json")  
                 for name, data in self.skills.items():
                     self.skill_cache.add(name, data)
             except Exception as e:
@@ -158,7 +158,7 @@ class SkillManager:
             self.logger.error(f"Dataset initialization failed: {e}")
             raise
 
-    async def generate_skill_description(self, program_name: str, program_code: str) -> Dict:
+    async def generate_skill_description(self, program_name: str, program_code: str):
         """
         生成技能描述，返回 JSON Schema 格式的描述。
         
@@ -193,7 +193,8 @@ class SkillManager:
                 raise ValueError(f"Error generating JSON Schema description: {response['error']}")
             
             # 解析 LLM 的返回结果
-            skill_description = response['answer']
+            answer= U.extract_json_from_markdown(response['answer'])
+            skill_description = answer
             
             # 验证返回的 JSON Schema 格式
             try:
@@ -203,7 +204,7 @@ class SkillManager:
                 raise ValueError("Generated description is not a valid JSON Schema")
             
             self.logger.debug(f"Generated JSON Schema for {program_name}: {skill_schema}")
-            return skill_schema
+            return U.json_dumps(skill_schema, indent=4)
         
         except Exception as e:
             self.logger.error(f"Failed to generate JSON Schema description: {e}")

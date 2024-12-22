@@ -236,14 +236,11 @@ class ActionAgent:
 
         return system_message
 
-    def render_human_message(self, events: List[Dict], code: str, task: str, context: str, critique: str) -> Dict:
+    def render_human_message(self, code: str, task: str, context: str, critique: str) -> Dict:
         """Render human message for the LLM"""
-        # 如果 events 为空，则使用默认值
-        events_content = "\n".join([str(event) for event in events]) if events else "No events available."
-        
+       
         human_message = {
             "content": self.prompts['human']
-                .replace("{{events}}", events_content)
                 .replace("{{code}}", code)
                 .replace("{{task}}", task)
                 .replace("{{context}}", context)
@@ -284,17 +281,17 @@ class ActionAgent:
         error = None  # To store error information
         while retry > 0:
             try:
-                self.logger.debug("Starting to parse AI message...")  # Log debug information
+                #self.logger.debug("Starting to parse AI message...")  # Log debug information
 
                 # Extract Python code blocks
                 code_pattern = re.compile(r"```(?:python)(.*?)```", re.DOTALL)
                 code = "\n".join(code_pattern.findall(message))
                 assert code.strip(), "No Python code found in the message."
-                self.logger.debug(f"Extracted code block:\n{code}")  # Log the extracted code block
+                #self.logger.debug(f"Extracted code block:\n{code}")  # Log the extracted code block
 
                 # Parse the code using the AST module
                 parsed = ast.parse(code)
-                self.logger.debug("Code parsed successfully, extracting function information...")  # Log successful parsing
+                #self.logger.debug("Code parsed successfully, extracting function information...")  # Log successful parsing
 
                 # Extract function information
                 functions = []
@@ -307,11 +304,11 @@ class ActionAgent:
                             "params": [arg.arg for arg in node.args.args],
                         }
                         functions.append(function_info)
-                        self.logger.debug(f"Extracted function: {function_info}")  # Log extracted function information
+                        #self.logger.debug(f"Extracted function: {function_info}")  # Log extracted function information
 
                 # Validate that at least one function exists
                 assert len(functions) > 0, "No functions found in the code."
-                self.logger.info(f"Extracted {len(functions)} functions in total.")  # Log the number of extracted functions
+                #self.logger.info(f"Extracted {len(functions)} functions in total.")  # Log the number of extracted functions
 
                 # Find the main function (the last async function)
                 main_function = None
@@ -322,12 +319,12 @@ class ActionAgent:
 
                 # Validate that the main function exists
                 assert main_function is not None, "No async function found. Your main function must be async."
-                self.logger.info(f"Main function name: {main_function['name']}")  # Log the main function name
+                #self.logger.info(f"Main function name: {main_function['name']}")  # Log the main function name
 
                 # Generate the return result
-                program_code = "\n\n".join(function["body"] for function in functions)
+                program_code = code
                 exec_code = f"await {main_function['name']}()"
-                self.logger.debug("Code parsing and main function extraction completed successfully.")  # Log success
+                #self.logger.debug("Code parsing and main function extraction completed successfully.")  # Log success
 
                 return {
                     "program_code": program_code,
@@ -338,8 +335,8 @@ class ActionAgent:
             except Exception as e:
                 retry -= 1
                 error = e
-                self.logger.error(f"Failed to parse AI message. Remaining retries: {retry}. Error: {e}")  # Log error
+                #self.logger.error(f"Failed to parse AI message. Remaining retries: {retry}. Error: {e}")  # Log error
 
         # If retries are exhausted, return an error message
-        self.logger.critical(f"Failed to parse AI message after retries. Error: {error}")  # Log critical error
+        #self.logger.critical(f"Failed to parse AI message after retries. Error: {error}")  # Log critical error
         return f"Error parsing action response (before program execution): {error}"

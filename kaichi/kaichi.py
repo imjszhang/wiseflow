@@ -1,7 +1,8 @@
 #Filename: kaichi.py
 import os
 import time
-import logging
+import logging    
+import datetime
 from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
 from logging.handlers import RotatingFileHandler
@@ -64,7 +65,12 @@ class Kaichi:
         
         if self.config.resume:
             self._load_checkpoints()
-            
+
+        # 创建保存目录
+        self.step_logs_dir = os.path.join(self.config.ckpt_dir, "step_logs")
+        os.makedirs(self.step_logs_dir, exist_ok=True)       
+        self.logger.info("Step logs directory initialized at: %s", self.step_logs_dir)
+
         self.logger.info("Kaichi initialized successfully")
 
 
@@ -161,6 +167,7 @@ class Kaichi:
             self.logger.error(f"Failed to load checkpoints: {e}")
             raise RuntimeError("Checkpoint loading failed") from e
 
+
     async def reset(self, task: str, context: str = "") -> List:
         """Reset agent state for new task"""
         self.logger.info("Resetting agent for task: %s with context: %s", task, context)
@@ -179,13 +186,19 @@ class Kaichi:
             self.state.last_state = initial_state
             self.logger.info("Environment reset successfully. Initial state: %s", initial_state)
 
+            # Create a unique subdirectory for this task
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.current_task_dir = os.path.join(self.step_logs_dir, f"{timestamp}")
+            os.makedirs(self.current_task_dir, exist_ok=True)
+            self.logger.info("Created task directory: %s", self.current_task_dir)
+
             # Load skills and prepare messages
             skills = await self.skill_manager.retrieve_skills(query=self.state.context)
             self.logger.debug("Retrieved skills: %s", skills)
 
             system_message = self.action_agent.render_system_message(skills=skills)
             human_message = self.action_agent.render_human_message(
-                events=[], code="", task=task, context=self.state.context, critique=""
+                code="", task=task, context=self.state.context, critique=""
             )
             
             self.messages = [system_message, human_message]
@@ -215,18 +228,61 @@ class Kaichi:
             code = parsed_result["program_code"]
             self.logger.info("Parsed program code: %s", code)
 
-            state, reward, done, _, info = self.state.env.step(code)
+            # Save generated code to a .py file
+            code_file = os.path.join(self.current_task_dir, f"step_{self.state.iteration:03d}.py")
+            with open(code_file, "w") as f:
+                f.write(code)
+            self.logger.info("Generated code saved to: %s", code_file)
+
+            # Save generated code to step log
+            step_log = {
+                "iteration": self.state.iteration,
+                "task": self.state.current_task,
+                "generated_code_file": code_file
+            }
+
+            success = False
+
+            # Execute code in the environment
+            state, reward = await self.state.env.step(code)
             self.state.last_state = state
-            self.logger.info("Environment step executed. State: %s, Reward: %s, Done: %s", state, reward, done)
+            self.logger.info("Environment step executed. State: %s, Reward: %s, Done: %s", state, reward)
+
+            # Add execution result to step log
+            step_log.update({
+                "execution_result": {
+                    "state": state,
+                    "reward": reward,
+                }
+            })
 
             # Validate code execution
-            success, critique = self._validate_code(parsed_result, state)
+            success, critique = await self._validate_code(parsed_result, state)
             self.logger.info("Code validation result: Success=%s, Critique=%s", success, critique)
 
+            # Add CriticAgent's feedback to step log
+            step_log.update({
+                "validation_result": {
+                    "success": success,
+                    "critique": critique
+                }
+            })
+
+            # Save step log to a JSON file
+            log_file = os.path.join(self.current_task_dir, f"step_{self.state.iteration:03d}.json")
+            with open(log_file, "w") as f:
+                U.json.dump(step_log, f, indent=4)
+            self.logger.info("Step log saved to: %s", log_file)
+
             # Update messages and state
-            self._update_messages(parsed_result, critique, state)
+            self._update_messages(parsed_result, critique)
             self.state.iteration += 1
 
+            done = (
+                self.state.iteration >= 3
+                or success
+            )
+            
             # Update metrics
             response_time = time.time() - start_time
             self.metrics.update(success, response_time, len(ai_message))
@@ -238,9 +294,9 @@ class Kaichi:
             self.logger.error("Step error: %s", e, exc_info=True)
             return self.messages, 0, True, {"success": False, "error": str(e)}
 
-    def _validate_code(self, parsed_result: Dict, state: Dict) -> Tuple[bool, str]:
+    async def _validate_code(self, parsed_result: Dict, state: Dict) -> Tuple[bool, str]:
         """Validate generated code"""
-        return self.critic_agent.check_task_success(
+        return await self.critic_agent.check_task_success(
             task=self.state.current_task,
             context=self.state.context,
             code=parsed_result["program_code"],
@@ -248,11 +304,10 @@ class Kaichi:
             max_retries=self.config.max_retries
         )
 
-    def _update_messages(self, parsed_result: Dict, critique: str, state: Dict):
+    def _update_messages(self, parsed_result: Dict, critique: str):
         """Update system and human messages"""
         system_message = self.action_agent.render_system_message(skills="")
         human_message = self.action_agent.render_human_message(
-            events=[],  # ProjectEnv 不返回事件，使用空列表
             code=parsed_result["program_code"],
             task=self.state.current_task,
             context=self.state.context,

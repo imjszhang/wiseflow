@@ -45,7 +45,7 @@ class ProjectEnv(gym.Env):
         self.has_reset = True
         return {"status": "ready", "temp_dir": self.temp_dir}, {}
 
-    def step(self, code: str) -> Tuple[ObsType, SupportsFloat, bool, bool, Dict[str, Any]]:
+    async def step(self, code: str) -> Tuple[ObsType, SupportsFloat, bool, bool, Dict[str, Any]]:
         """
         执行一段 Python 代码。
 
@@ -88,19 +88,13 @@ class ProjectEnv(gym.Env):
             # 奖励机制：如果代码执行成功（return_code == 0），给予正奖励；否则给予负奖励
             reward = 1.0 if return_code == 0 else -1.0
 
-            # 是否结束：可以根据某些条件定义结束逻辑，这里简单地设置为永不结束
-            done = False
-
             # 返回状态和信息
             state = {
                 "output": output,
                 "error": error,
                 "return_code": return_code,
             }
-            info = {
-                "log": self.execution_log,
-            }
-            return state, reward, done, False, info
+            return state, reward
 
         except subprocess.TimeoutExpired:
             # 如果代码执行超时
@@ -117,11 +111,7 @@ class ProjectEnv(gym.Env):
                 "return_code": -1,
             }
             reward = -1.0  # 超时给予负奖励
-            done = False
-            info = {
-                "log": self.execution_log,
-            }
-            return state, reward, done, False, info
+            return state, reward
 
     def render(self):
         """
