@@ -9,11 +9,11 @@ async def main():
         max_iterations=160,
         max_retries=5,
         env_timeout=5,  # ProjectEnv 的超时时间
-        log_path=os.path.join(kaichi_dir, "work_dir/logs"),  # 日志目录
+        env_log_path=os.path.join(kaichi_dir, "work_dir/env"),  # 日志目录
         ckpt_dir=os.path.join(kaichi_dir, "work_dir/ckpt"),  # 检查点目录
         observation_dir=os.path.abspath(os.path.join(kaichi_dir, "../")),  # 观察目录（kaichi目录的上级目录）
         resume=False,
-        log_level="INFO"
+        log_level="DEBUG"
     )
     
     agent = Kaichi(config)

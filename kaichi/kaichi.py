@@ -4,7 +4,7 @@ import time
 import logging
 from typing import Dict, Optional, Tuple, List
 from dataclasses import dataclass
-
+from logging.handlers import RotatingFileHandler
 from env import ProjectEnv  
 from agents.curriculum import CurriculumAgent, CurriculumConfig
 from agents.skill import SkillManager, SkillManagerConfig, SkillCache
@@ -17,7 +17,7 @@ class AgentConfig:
     max_iterations: int = 160
     max_retries: int = 5
     env_timeout: int = 5  # ProjectEnv 的超时时间
-    log_path: str = "work_dir/logs"  # ProjectEnv 的日志路径
+    env_log_path: str = "work_dir/env"  # ProjectEnv 的日志路径
     observation_dir: str = os.path.abspath(os.path.dirname(__file__))
     ckpt_dir: str = "work_dir/ckpt"
     resume: bool = False
@@ -67,12 +67,15 @@ class Kaichi:
             
         self.logger.info("Kaichi initialized successfully")
 
+
     def _setup_logging(self):
         """Setup logging configuration"""
         self.logger = logging.getLogger("Kaichi")
         self.logger.setLevel(self.config.log_level)
         
-        handler = logging.FileHandler(f"{self.config.ckpt_dir}/agent.log")
+        # 使用 RotatingFileHandler 实现日志轮转
+        log_file = f"{self.config.ckpt_dir}/agent.log"
+        handler = RotatingFileHandler(log_file, maxBytes=5 * 1024 * 1024, backupCount=3)  # 每个日志文件最大 5MB，保留 3 个备份
         handler.setFormatter(logging.Formatter(
             '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
         ))
@@ -80,33 +83,38 @@ class Kaichi:
 
     def _init_env(self):
         """Initialize the environment"""
-        self.state.env = ProjectEnv(
-            timeout=self.config.env_timeout,
-            log_path=self.config.log_path
-        )
-        self.logger.info("Environment initialized successfully")
+        try:
+            self.state.env = ProjectEnv(
+                timeout=self.config.env_timeout,
+                log_path=self.config.env_log_path
+            )
+            self.logger.info("Environment initialized successfully with timeout=%s and log_path=%s",
+                            self.config.env_timeout, self.config.env_log_path)
+        except Exception as e:
+            self.logger.error("Failed to initialize environment: %s", e, exc_info=True)
+            raise
 
     def _init_agents(self):
         """Initialize all required agents"""
         try:
             # 配置 CurriculumAgent
             curriculum_config = CurriculumConfig(
-                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
-                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
+                ckpt_dir=self.config.ckpt_dir,  
+                observation_dir=self.config.observation_dir,  
                 mode="auto",
                 max_retries=3,
-                log_level="DEBUG",
+                log_level=self.config.log_level,
                 cache_size=10
             )
 
             # 配置 ActionAgent
             action_config = ActionConfig(
-                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
-                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
+                ckpt_dir=self.config.ckpt_dir,  
+                observation_dir=self.config.observation_dir,  
                 resume=False,  
                 mode="auto",
                 max_retries=3,
-                log_level="DEBUG",
+                log_level=self.config.log_level,
                 cache_size=10,
                 temperature=0.7,
                 request_timeout=60
@@ -114,9 +122,9 @@ class Kaichi:
 
             # 配置 CriticAgent
             critic_config = CriticConfig(
-                ckpt_dir=self.config.ckpt_dir,  # 检查点目录
-                observation_dir=self.config.observation_dir,  # 观察目录（项目根目录）
-                log_level="DEBUG"
+                ckpt_dir=self.config.ckpt_dir,  
+                observation_dir=self.config.observation_dir,  
+                log_level=self.config.log_level
             )
 
             # Initialize skill manager
@@ -155,73 +163,79 @@ class Kaichi:
 
     async def reset(self, task: str, context: str = "") -> List:
         """Reset agent state for new task"""
-        self.logger.info(f"Resetting agent for task: {task}")
+        self.logger.info("Resetting agent for task: %s with context: %s", task, context)
         
-        self.state.current_task = task
-        self.state.context = context
-        self.state.iteration = 0
-        
-        # Reset metrics for new task
-        self.metrics.reset()
-        
-        # Reset environment
-        initial_state, _ = self.state.env.reset()
-        self.state.last_state = initial_state
+        try:
+            self.state.current_task = task
+            self.state.context = context
+            self.state.iteration = 0
+            
+            # Reset metrics for new task
+            self.metrics.reset()
+            self.logger.debug("Metrics reset successfully")
 
-        # Load skills and prepare messages
-        skills = await self.skill_manager.retrieve_skills(query=self.state.context)
-        system_message = self.action_agent.render_system_message(skills=skills)
-        human_message = self.action_agent.render_human_message(
-            events=[], code="", task=task, context=self.state.context, critique=""
-        )
-        
-        self.messages = [system_message, human_message]
-        self.conversations = []
-        
-        self.logger.debug(f"Human message: {human_message.content}")
-        return self.messages
+            # Reset environment
+            initial_state, _ = self.state.env.reset()
+            self.state.last_state = initial_state
+            self.logger.info("Environment reset successfully. Initial state: %s", initial_state)
 
-    def step(self) -> Tuple:
+            # Load skills and prepare messages
+            skills = await self.skill_manager.retrieve_skills(query=self.state.context)
+            self.logger.debug("Retrieved skills: %s", skills)
+
+            system_message = self.action_agent.render_system_message(skills=skills)
+            human_message = self.action_agent.render_human_message(
+                events=[], code="", task=task, context=self.state.context, critique=""
+            )
+            
+            self.messages = [system_message, human_message]
+            self.conversations = []
+            
+            self.logger.debug("Human message: %s", human_message['content'])
+            return self.messages
+        except Exception as e:
+            self.logger.error("Failed to reset agent: %s", e, exc_info=True)
+            raise
+
+    async def step(self) -> Tuple:
         """Execute one step of the agent"""
         start_time = time.time()
+        self.logger.info("Starting step %d for task: %s", self.state.iteration, self.state.current_task)
         
         try:
             if not self._validate_state():
                 raise ValueError("Invalid agent state")
 
             # Generate code
-            ai_message = self._generate_code()
-            self.conversations.append((
-                self.messages[0].content,
-                self.messages[1].content,
-                ai_message.content
-            ))
+            ai_message = await self._generate_code()
+            self.logger.debug("Generated AI message: %s", ai_message)
 
             # Parse and execute code
-            parsed_result = self._parse_code(ai_message.content)
+            parsed_result = self._parse_code(ai_message)
             code = parsed_result["program_code"]
+            self.logger.info("Parsed program code: %s", code)
+
             state, reward, done, _, info = self.state.env.step(code)
             self.state.last_state = state
+            self.logger.info("Environment step executed. State: %s, Reward: %s, Done: %s", state, reward, done)
 
             # Validate code execution
             success, critique = self._validate_code(parsed_result, state)
+            self.logger.info("Code validation result: Success=%s, Critique=%s", success, critique)
 
             # Update messages and state
             self._update_messages(parsed_result, critique, state)
             self.state.iteration += 1
 
-            # Calculate reward and check if done
-            done = success or self.state.iteration >= self.config.max_retries
-            reward = 1.0 if success else -1.0
-
             # Update metrics
             response_time = time.time() - start_time
-            self.metrics.update(success, response_time, len(ai_message.content))
+            self.metrics.update(success, response_time, len(ai_message))
+            self.logger.info("Step completed. Success=%s, Response time=%.2f seconds", success, response_time)
 
             return self.messages, reward, done, self._get_step_info(success, parsed_result)
 
         except Exception as e:
-            self.logger.error(f"Step error: {e}")
+            self.logger.error("Step error: %s", e, exc_info=True)
             return self.messages, 0, True, {"success": False, "error": str(e)}
 
     def _validate_code(self, parsed_result: Dict, state: Dict) -> Tuple[bool, str]:
@@ -255,16 +269,13 @@ class Kaichi:
             self.state.current_task is not None
         )
 
-    def _generate_code(self):
+    async def _generate_code(self):
         """Generate code using action agent"""
-        return self.action_agent.llm(self.messages)
+        return await self.action_agent.generate_code(self.messages)
 
     def _parse_code(self, content: str) -> Dict:
         """Parse generated code content"""
-        return {
-            "program_code": content,
-            "program_name": self.state.current_task
-        }
+        return self.action_agent.process_ai_message(content)
 
     def _get_step_info(self, success: bool, parsed_result: Optional[Dict] = None) -> Dict:
         """Prepare step information"""
@@ -289,7 +300,7 @@ class Kaichi:
         messages = await self.reset(task=task, context=context)
         
         while True:
-            messages, reward, done, info = self.step()
+            messages, reward, done, info = await self.step()
             if done:
                 break
                 
@@ -298,47 +309,43 @@ class Kaichi:
 
     async def learn(self, task: str = "", maxloop: int = 1):
         """Run agent with given task or curriculum"""
-        self.logger.info(f"Starting agent run. Task: {task}, maxloop: {maxloop}")
+        self.logger.info("Starting agent run. Task: %s, maxloop: %d", task, maxloop)
         
         loop = 1
         while loop <= maxloop:
             try:
-                # Get task and context
+                """
                 if not task:
                     task, context = await self.curriculum_agent.propose_next_task(
                         max_retries=self.config.max_retries
                     )
                 else:
                     context = await self.curriculum_agent.get_task_context(task)
+                """
+                task="Implement a basic insight extraction feature using the get_insights function"
+                context=U.load_text("test_context.txt")
+
+
+                self.logger.info("Executing task %s (Loop %d/%d)", task, loop, maxloop)
                 
-                self.logger.info(f"Executing task {task} (Loop {loop}/{maxloop})")
+                messages, reward, done, info = await self.rollout(task=task, context=context)
                 
-                # Execute task
-                messages, reward, done, info = await self.rollout(
-                    task=task,
-                    context=context
-                )
-                
-                # Handle results
                 if info["success"]:
-                    await self.skill_manager.add_skill(
-                        skill_name=info["program_name"], 
-                        skill_code=info["program_code"]
-                    )
+                    self.logger.info("Task %s completed successfully", task)
+                    await self.skill_manager.add_new_skill(info)
                     self.state.success_count += 1
                 else:
+                    self.logger.warning("Task %s failed", task)
                     self.state.failure_count += 1
                     
                 self.curriculum_agent.update_exploration_progress(info)
-                
             except Exception as e:
-                self.logger.error(f"Error in run loop: {e}")
+                self.logger.error("Error in run loop: %s", e, exc_info=True)
                 time.sleep(3)
                 info = {"task": task, "success": False}
-                
             loop += 1
             
-        self.logger.info("Agent run completed")
+        self.logger.info("Agent run completed. Success rate: %.2f", self.metrics.success_rate)
         return {
             "success_rate": self.metrics.success_rate,
             "total_steps": self.metrics.steps,

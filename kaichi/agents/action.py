@@ -4,6 +4,8 @@ import time
 import logging
 from typing import Dict, List, Optional
 from dataclasses import dataclass
+import ast
+import re
 
 from llms.dify_wrapper import dify_llm_async
 import utils as U
@@ -180,18 +182,68 @@ class ActionAgent:
         """Get base path for state files"""
         return f"{self.config.ckpt_dir}/action"
 
-    def render_system_message(self, skills: List[str]) -> Dict:
-        """Render system message for the LLM"""
-        system_message = {
-            "content": self.prompts['system'].replace("{{skills}}", "\n".join(skills))
+
+    def render_system_message(self, skills: List[str] = None) -> Dict:
+        """
+        Render system message for the LLM with only the essential base skills.
+
+        Args:
+            skills (List[str]): List of additional skills to include.
+
+        Returns:
+            Dict: Rendered system message.
+        """
+        # 如果 skills 为 None，则初始化为空列表
+        if skills is None:
+            skills = []
+
+        # Define the essential base skills with Python implementations
+        base_skills_code = {
+            "readFile": """
+        def read_file(file_path: str) -> str:
+            \"\"\"Read the content of a specific file.\"\"\"
+            try:
+                with open(file_path, 'r', encoding='utf-8') as file:
+                    return file.read()
+            except Exception as e:
+                return f"Error reading file {file_path}: {str(e)}"
+            """,
+            "writeFile": """
+        def write_file(file_path: str, content: str) -> bool:
+            \"\"\"Write content to a specific file.\"\"\"
+            try:
+                with open(file_path, 'w', encoding='utf-8') as file:
+                    file.write(content)
+                return True
+            except Exception as e:
+                print(f"Error writing to file {file_path}: {str(e)}")
+                return False
+            """
         }
+
+        # Combine the base skills
+        base_skills = "\n\n".join([base_skills_code["readFile"], base_skills_code["writeFile"]])
+
+        # Combine base skills and additional skills
+        all_skills = base_skills
+        if skills:
+            all_skills += "\n\n".join(skills)
+
+        # Render the system message
+        system_message = {
+            "content": self.prompts['system'].replace("{{skills}}", all_skills)
+        }
+
         return system_message
 
     def render_human_message(self, events: List[Dict], code: str, task: str, context: str, critique: str) -> Dict:
         """Render human message for the LLM"""
+        # 如果 events 为空，则使用默认值
+        events_content = "\n".join([str(event) for event in events]) if events else "No events available."
+        
         human_message = {
             "content": self.prompts['human']
-                .replace("{{events}}", "\n".join([str(event) for event in events]))
+                .replace("{{events}}", events_content)
                 .replace("{{code}}", code)
                 .replace("{{task}}", task)
                 .replace("{{context}}", context)
@@ -199,15 +251,13 @@ class ActionAgent:
         }
         return human_message
 
-    async def llm(self, messages: List[Dict]) -> str:
+    async def generate_code(self, messages: List[Dict]) -> str:
         """Call the LLM to generate a response"""
         try:
             response = await self.llm(
                 query=messages[1]["content"],
                 user="ActionAgent",
                 inputs={"system": messages[0]["content"]},
-                temperature=self.config.temperature,
-                timeout=self.config.request_timeout,
                 logger=self.logger
             )
             return response["answer"]
@@ -216,10 +266,80 @@ class ActionAgent:
             raise RuntimeError("Failed to call LLM") from e
 
     def process_ai_message(self, message: str) -> Dict:
-        """Process the AI-generated message"""
-        # This method should parse the AI message and extract the code or instructions
-        # For now, we assume the message is directly the code
-        return {
-            "program_code": message,
-            "exec_code": ""
-        }
+        """
+        Parse the AI response message, extract Python code blocks, and analyze their structure.
+
+        Args:
+            message (str): AI response message containing Python code blocks.
+
+        Returns:
+            Dict: A dictionary containing the program code, main function name, and execution code.
+
+        Raises:
+            RuntimeError: If the message cannot be parsed or code cannot be extracted.
+        """
+        assert isinstance(message, str), "Input message must be a string."
+
+        retry = 1  # Set the number of retries
+        error = None  # To store error information
+        while retry > 0:
+            try:
+                self.logger.debug("Starting to parse AI message...")  # Log debug information
+
+                # Extract Python code blocks
+                code_pattern = re.compile(r"```(?:python)(.*?)```", re.DOTALL)
+                code = "\n".join(code_pattern.findall(message))
+                assert code.strip(), "No Python code found in the message."
+                self.logger.debug(f"Extracted code block:\n{code}")  # Log the extracted code block
+
+                # Parse the code using the AST module
+                parsed = ast.parse(code)
+                self.logger.debug("Code parsed successfully, extracting function information...")  # Log successful parsing
+
+                # Extract function information
+                functions = []
+                for node in ast.walk(parsed):
+                    if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                        function_info = {
+                            "name": node.name,
+                            "type": "AsyncFunction" if isinstance(node, ast.AsyncFunctionDef) else "Function",
+                            "body": ast.unparse(node) if hasattr(ast, "unparse") else compile(ast.Module([node], []), filename="<ast>", mode="exec"),
+                            "params": [arg.arg for arg in node.args.args],
+                        }
+                        functions.append(function_info)
+                        self.logger.debug(f"Extracted function: {function_info}")  # Log extracted function information
+
+                # Validate that at least one function exists
+                assert len(functions) > 0, "No functions found in the code."
+                self.logger.info(f"Extracted {len(functions)} functions in total.")  # Log the number of extracted functions
+
+                # Find the main function (the last async function)
+                main_function = None
+                for function in reversed(functions):
+                    if function["type"] == "AsyncFunction":
+                        main_function = function
+                        break
+
+                # Validate that the main function exists
+                assert main_function is not None, "No async function found. Your main function must be async."
+                self.logger.info(f"Main function name: {main_function['name']}")  # Log the main function name
+
+                # Generate the return result
+                program_code = "\n\n".join(function["body"] for function in functions)
+                exec_code = f"await {main_function['name']}()"
+                self.logger.debug("Code parsing and main function extraction completed successfully.")  # Log success
+
+                return {
+                    "program_code": program_code,
+                    "program_name": main_function["name"],
+                    "exec_code": exec_code,
+                }
+
+            except Exception as e:
+                retry -= 1
+                error = e
+                self.logger.error(f"Failed to parse AI message. Remaining retries: {retry}. Error: {e}")  # Log error
+
+        # If retries are exhausted, return an error message
+        self.logger.critical(f"Failed to parse AI message after retries. Error: {error}")  # Log critical error
+        return f"Error parsing action response (before program execution): {error}"

@@ -158,11 +158,21 @@ class SkillManager:
             self.logger.error(f"Dataset initialization failed: {e}")
             raise
 
-    async def generate_skill_description(self, program_name: str, program_code: str) -> str:
-        """生成技能描述"""
-        self.logger.info(f"Generating description for skill: {program_name}")
+    async def generate_skill_description(self, program_name: str, program_code: str) -> Dict:
+        """
+        生成技能描述，返回 JSON Schema 格式的描述。
+        
+        Args:
+            program_name (str): 函数名称。
+            program_code (str): 函数代码。
+        
+        Returns:
+            Dict: JSON Schema 格式的函数描述。
+        """
+        self.logger.info(f"Generating JSON Schema description for skill: {program_name}")
         
         try:
+            # 构建提示词
             prompt = self.prompts['description'].replace(
                 "{{code}}", program_code
             ).replace(
@@ -170,24 +180,33 @@ class SkillManager:
             )
             
             inputs = {'system': prompt}
+            
+            # 调用 LLM 生成描述
             response = await self.llm(
-                query="Please generate a skill description based on the provided code.",
+                query="Please generate a JSON Schema description for the provided Python function.",
                 user="SkillManager",
                 inputs=inputs,
                 logger=self.logger
             )
             
             if "error" in response:
-                raise ValueError(f"Error generating description: {response['error']}")
-                
-            skill_description = f"    // {response['answer']}"
-            result = f"async function {program_name}(bot) {{\n{skill_description}\n}}"
+                raise ValueError(f"Error generating JSON Schema description: {response['error']}")
             
-            self.logger.debug(f"Generated description for {program_name}")
-            return result
+            # 解析 LLM 的返回结果
+            skill_description = response['answer']
             
+            # 验证返回的 JSON Schema 格式
+            try:
+                skill_schema = U.fix_and_parse_json(skill_description)
+            except Exception as e:
+                self.logger.error(f"Invalid JSON Schema format: {e}")
+                raise ValueError("Generated description is not a valid JSON Schema")
+            
+            self.logger.debug(f"Generated JSON Schema for {program_name}: {skill_schema}")
+            return skill_schema
+        
         except Exception as e:
-            self.logger.error(f"Failed to generate skill description: {e}")
+            self.logger.error(f"Failed to generate JSON Schema description: {e}")
             raise
 
     async def review_skill(self, skill_name: str, skill_code: str) -> Dict:
@@ -276,33 +295,63 @@ class SkillManager:
             self.logger.error(f"Failed to retrieve skills: {e}")
             raise
 
-    async def add_skill(self, skill_name: str, skill_code: str):
+    async def add_new_skill(self, info: Dict) -> Dict:
         """添加新技能"""
-        self.logger.info(f"Adding new skill: {skill_name}")
+        self.logger.info(f"Adding new skill: {info['program_name']}")
         
         try:
-            skill_description = await self.generate_skill_description(skill_name, skill_code)
+            program_name = info["program_name"]
+            program_code = info["program_code"]
             
+            # 生成技能描述
+            skill_description = await self.generate_skill_description(program_name, program_code)
+            self.logger.info(f"Generated description for {program_name}:\n{skill_description}")
+            
+            # 检查技能是否已存在
+            if program_name in self.skills:
+                self.logger.warning(f"Skill {program_name} already exists. Rewriting!")
+                
+                # 删除旧技能的向量数据库记录
+                await self.dataset_api.delete_document(self.dataset_id, program_name)
+                
+                # 处理版本号
+                i = 2
+                while f"{program_name}V{i}.py" in os.listdir(f"{self.config.ckpt_dir}/skill/code"):
+                    i += 1
+                dumped_program_name = f"{program_name}V{i}"
+            else:
+                dumped_program_name = program_name
+            
+            # 添加技能到向量数据库
             response = await self.dataset_api.create_document_by_text(
                 dataset_id=self.dataset_id,
-                name=skill_name,
-                text=skill_code
+                name=program_name,
+                text=skill_description
             )
-            
             if "error" in response:
                 raise ValueError(f"Error adding skill to dataset: {response['error']}")
-                
-            skill_data = {
-                "code": skill_code,
-                "description": skill_description
+            
+            # 更新技能字典
+            self.skills[program_name] = {
+                "code": program_code,
+                "description": skill_description,
             }
-            self.skills[skill_name] = skill_data
             
-            self.skill_cache.add(skill_name, skill_data)
+            # 确保向量数据库与技能字典同步
+            documents = await self.dataset_api.list_documents(self.dataset_id)
+            assert len(documents.get("data", [])) == len(self.skills), "Dataset is not synced with skills.json"
             
-            U.dump_json(self.skills, f"{self.config.ckpt_dir}/skill/skills.json")  # 修改此行
+            # 保存技能代码和描述到本地文件
+            U.dump_text(
+                program_code, f"{self.config.ckpt_dir}/skill/code/{dumped_program_name}.py"
+            )
+            U.dump_text(
+                skill_description,
+                f"{self.config.ckpt_dir}/skill/description/{dumped_program_name}.txt",
+            )
+            U.dump_json(self.skills, f"{self.config.ckpt_dir}/skill/skills.json")
             
-            self.logger.info(f"Successfully added skill: {skill_name}")
+            self.logger.info(f"Successfully added skill: {program_name}")
             
         except Exception as e:
             self.logger.error(f"Failed to add skill: {e}")
@@ -318,45 +367,3 @@ class SkillManager:
     def list_skills(self) -> List[str]:
         """列出所有技能"""
         return list(self.skills.keys())
-    
-
-
-async def main():
-    # 创建配置
-    config = SkillManagerConfig(
-        retrieval_top_k=10,
-        cache_size=200,
-        log_level="DEBUG"
-    )
-    
-    # 初始化SkillManager
-    skill_manager = SkillManager(config)
-    
-    # 添加技能
-    await skill_manager.add_skill(
-        "test_skill",
-        """async function test_skill(bot) {
-            // Test skill implementation
-            console.log('Testing skill');
-        }"""
-    )
-    
-    # 检索技能
-    skills = await skill_manager.retrieve_skills("test")
-    print("Retrieved skills:", skills)
-    
-    # 获取技能信息
-    skill_info = skill_manager.get_skill("test_skill")
-    print("Skill info:", skill_info)
-    
-    # 分析技能
-    analysis = await skill_manager.analyze_skill(skill_info["code"])
-    print("Skill analysis:", analysis)
-    
-    # 列出所有技能
-    all_skills = skill_manager.list_skills()
-    print("All skills:", all_skills)
-
-if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())

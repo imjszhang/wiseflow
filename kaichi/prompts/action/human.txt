@@ -1,22 +1,18 @@
 Based on the following task requirements and context, implement a solution.
 
-
 #### Task Details:
 
 - **Task Name**: {{task}}
 
 - **Context**: {{context}}
 
-
 #### Current Code:
 
 {{code}}
 
-
 #### Observed Events:
 
 {{events}}
-
 
 #### Critique or Feedback:
 
@@ -24,34 +20,32 @@ Based on the following task requirements and context, implement a solution.
 
 Requirements:
 1. Implementation Details
-- Complete, working code
-- Proper error handling
-- Type hints
-- Logging integration
-- Performance considerations
+- Provide complete, working Python code that solves the task effectively.
+- Ensure the code includes proper error handling, type hints, and logging.
+- Include at least one asynchronous function (`async def`) as the main entry point of the program.
+- The main asynchronous function should be the last defined `async def` function in the code.
 
 2. Documentation
-- Clear docstrings
-- Parameter descriptions
-- Return value specifications
-- Usage examples
-- Implementation notes
+- Add clear and comprehensive docstrings for all functions and classes.
+- Document all parameters, return types, and usage examples.
+- Note any limitations, assumptions, or edge cases handled in the code.
 
 3. Code Quality
-- Clean, readable code
-- Modular design
-- Reusable components
-- Efficient implementation
-- Edge case handling
+- Write clean, readable, and modular code.
+- Use appropriate data structures and algorithms for efficiency.
+- Ensure the code is syntactically correct and can be parsed by Python's `ast` module.
+- Avoid placeholder or incomplete function bodies.
 
 4. Testing Considerations
-- Input validation
-- Error scenarios
-- Edge cases
-- Performance aspects
+- Validate inputs and handle edge cases appropriately.
+- Include error scenarios and performance considerations.
+- Ensure the code is executable and free of syntax errors.
 
 Your response should be production-ready code that:
-- Solves the given task effectively
-- Is well documented and readable
-- Handles errors gracefully
-- Is performant and efficient
+- Is wrapped in a Python code block using the following format:
+  ```python
+  [Python code here]
+  ```
+- Includes all necessary imports, function definitions, and a clear structure.
+- Defines the main asynchronous function (`async def`) as the last function in the code.
+- Is well-documented, efficient, and handles errors gracefully.
