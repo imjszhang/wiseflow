@@ -224,7 +224,7 @@ class Kaichi:
             self.logger.debug("Generated AI message: %s", ai_message)
 
             # Parse and execute code
-            parsed_result = self._parse_code(ai_message)
+            parsed_result = await self._parse_code(ai_message)
             code = parsed_result["program_code"]
             self.logger.info("Parsed program code: %s", code)
 
@@ -328,9 +328,9 @@ class Kaichi:
         """Generate code using action agent"""
         return await self.action_agent.generate_code(self.messages)
 
-    def _parse_code(self, content: str) -> Dict:
+    async def _parse_code(self, content: str) -> Dict:
         """Parse generated code content"""
-        return self.action_agent.process_ai_message(content)
+        return await self.action_agent.process_ai_message(content)
 
     def _get_step_info(self, success: bool, parsed_result: Optional[Dict] = None) -> Dict:
         """Prepare step information"""

@@ -308,6 +308,15 @@ class SkillManager:
             skill_description = await self.generate_skill_description(program_name, program_code)
             self.logger.info(f"Generated description for {program_name}:\n{skill_description}")
             
+            # 检查技能字典文件是否存在
+            skills_file_path = f"{self.config.ckpt_dir}/skill/skills.json"
+            if os.path.exists(skills_file_path):
+                self.skills = U.load_json(skills_file_path)
+            else:
+                self.logger.warning(f"Skills file not found. Creating a new one at {skills_file_path}")
+                self.skills = {}
+                U.dump_json(self.skills, skills_file_path)
+            
             # 检查技能是否已存在
             if program_name in self.skills:
                 self.logger.warning(f"Skill {program_name} already exists. Rewriting!")
@@ -350,7 +359,7 @@ class SkillManager:
                 skill_description,
                 f"{self.config.ckpt_dir}/skill/description/{dumped_program_name}.txt",
             )
-            U.dump_json(self.skills, f"{self.config.ckpt_dir}/skill/skills.json")
+            U.dump_json(self.skills, skills_file_path)
             
             self.logger.info(f"Successfully added skill: {program_name}")
             

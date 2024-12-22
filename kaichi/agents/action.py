@@ -262,9 +262,10 @@ class ActionAgent:
             self.logger.error(f"LLM call failed: {e}")
             raise RuntimeError("Failed to call LLM") from e
 
-    def process_ai_message(self, message: str) -> Dict:
+    async def process_ai_message(self, message: str) -> Dict:
         """
-        Parse the AI response message, extract Python code blocks, and analyze their structure.
+        Parse the AI response message, extract Python code blocks, analyze their structure,
+        and rename the main function using LLM to generate a more appropriate name.
 
         Args:
             message (str): AI response message containing Python code blocks.
@@ -281,17 +282,15 @@ class ActionAgent:
         error = None  # To store error information
         while retry > 0:
             try:
-                #self.logger.debug("Starting to parse AI message...")  # Log debug information
-
                 # Extract Python code blocks
-                code_pattern = re.compile(r"```(?:python)(.*?)```", re.DOTALL)
+                code_pattern = re.compile(r"```(?:python)?(.*?)```", re.DOTALL)
                 code = "\n".join(code_pattern.findall(message))
                 assert code.strip(), "No Python code found in the message."
-                #self.logger.debug(f"Extracted code block:\n{code}")  # Log the extracted code block
+                self.logger.debug(f"Extracted code block:\n{code}")
 
                 # Parse the code using the AST module
                 parsed = ast.parse(code)
-                #self.logger.debug("Code parsed successfully, extracting function information...")  # Log successful parsing
+                self.logger.debug("Code parsed successfully, extracting function information...")
 
                 # Extract function information
                 functions = []
@@ -304,11 +303,11 @@ class ActionAgent:
                             "params": [arg.arg for arg in node.args.args],
                         }
                         functions.append(function_info)
-                        #self.logger.debug(f"Extracted function: {function_info}")  # Log extracted function information
+                        self.logger.debug(f"Extracted function: {function_info}")
 
                 # Validate that at least one function exists
                 assert len(functions) > 0, "No functions found in the code."
-                #self.logger.info(f"Extracted {len(functions)} functions in total.")  # Log the number of extracted functions
+                self.logger.info(f"Extracted {len(functions)} functions in total.")
 
                 # Find the main function (the last async function)
                 main_function = None
@@ -319,24 +318,58 @@ class ActionAgent:
 
                 # Validate that the main function exists
                 assert main_function is not None, "No async function found. Your main function must be async."
-                #self.logger.info(f"Main function name: {main_function['name']}")  # Log the main function name
+                self.logger.info(f"Main function name: {main_function['name']}")
+
+                # Generate a new name for the main function using LLM
+                llm_prompt = f"```python\n{code}\n```"
+                llm_response = await self.llm(
+                    query=llm_prompt,
+                    user="ActionAgent",
+                    inputs={"system": "The following Python code contains an async main function named 'main'. Based on the code's functionality, suggest a more appropriate name for the main function. Please return the new function name in the format: new_function_name: <name>."},
+                    logger=self.logger
+                )
+                self.logger.debug(f"LLM response: {llm_response['answer']}")
+
+                # Extract the new function name from the LLM response
+                new_name_pattern = re.compile(r"new_function_name:\s*([a-zA-Z_][a-zA-Z0-9_]*)")
+                match = new_name_pattern.search(llm_response["answer"])
+                if not match:
+                    raise ValueError("Failed to extract new function name from LLM response.")
+                new_main_name = match.group(1)
+                self.logger.info(f"Suggested new main function name: {new_main_name}")
+
+                # Replace the main function name in the code
+                updated_code = re.sub(
+                    rf"async def {main_function['name']}\b",
+                    f"async def {new_main_name}",
+                    code
+                )
+                
+                # Replace all calls to the main function (e.g., asyncio.run(main()))
+                updated_code = re.sub(
+                    rf"\b{main_function['name']}\b",
+                    new_main_name,
+                    updated_code
+                )
+
+                self.logger.debug(f"Updated code with new main function name:\n{updated_code}")
 
                 # Generate the return result
-                program_code = code
-                exec_code = f"await {main_function['name']}()"
-                #self.logger.debug("Code parsing and main function extraction completed successfully.")  # Log success
+                program_code = updated_code
+                exec_code = f"await {new_main_name}()"
+                self.logger.debug("Code parsing and main function renaming completed successfully.")
 
                 return {
                     "program_code": program_code,
-                    "program_name": main_function["name"],
+                    "program_name": new_main_name,
                     "exec_code": exec_code,
                 }
 
             except Exception as e:
                 retry -= 1
                 error = e
-                #self.logger.error(f"Failed to parse AI message. Remaining retries: {retry}. Error: {e}")  # Log error
+                self.logger.error(f"Failed to process AI message. Remaining retries: {retry}. Error: {e}")
 
         # If retries are exhausted, return an error message
-        #self.logger.critical(f"Failed to parse AI message after retries. Error: {error}")  # Log critical error
-        return f"Error parsing action response (before program execution): {error}"
+        self.logger.critical(f"Failed to process AI message after retries. Error: {error}")
+        return f"Error processing action response (before program execution): {error}"
