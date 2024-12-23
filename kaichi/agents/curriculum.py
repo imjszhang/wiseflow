@@ -2,7 +2,6 @@
 from __future__ import annotations
 import os
 import logging
-import re
 from typing import Dict, List, Tuple, Optional
 from dataclasses import dataclass
 import json
@@ -10,7 +9,7 @@ from llms.dify_wrapper import dify_llm_async
 import utils as U
 from prompts import load_prompt
 from env.project_observer import ProjectObserver
-from agents.qa import QAPair, QAManager
+from agents.qa import QAPair, QAManager, QAManagerConfig
 from agents.task import TaskProgress
 
 @dataclass
@@ -88,7 +87,16 @@ class CurriculumAgent:
         try:
             self._init_directories()
             self.task_progress = TaskProgress()
-            self.qa_manager = QAManager(self.config.cache_size)
+
+            # Initialize qa manager
+            qa_config = QAManagerConfig(
+                ckpt_dir=self.config.ckpt_dir,
+                observation_dir=self.config.observation_dir,
+                cache_size=self.config.cache_size,
+                log_level=self.config.log_level
+            )
+
+            self.qa_manager = QAManager(qa_config)
             self._load_state()
             
         except Exception as e:
@@ -134,7 +142,7 @@ class CurriculumAgent:
             self.task_progress = TaskProgress.from_dict(progress_data)
             
             # Load QA pairs
-            qa_data = U.load_json(f"{base_path}/qa_pairs.json")
+            qa_data = U.load_json(f"{self.config.ckpt_dir}/qa/qa_pairs.json")
             self.qa_manager = QAManager.from_dict(
                 qa_data, 
                 self.config.cache_size
@@ -157,7 +165,7 @@ class CurriculumAgent:
             # Save QA pairs
             U.dump_json(
                 self.qa_manager.to_dict(),
-                f"{base_path}/qa_pairs.json"
+                f"{self.config.ckpt_dir}/qa/qa_pairs.json"
             )
             
         except Exception as e:
@@ -166,7 +174,7 @@ class CurriculumAgent:
 
     def _get_base_path(self) -> str:
         """Get base path for state files"""
-        return f"{self.config.ckpt_dir}/curriculum"  # 修改此行
+        return f"{self.config.ckpt_dir}/curriculum"  
 
     async def propose_next_task(self, max_retries: Optional[int] = None) -> Tuple[str, str]:
         """Propose next task"""
@@ -288,11 +296,7 @@ class CurriculumAgent:
         :param task: 任务名称
         :return: 上下文字符串
         """
-        try:
-            qa_pair = self.qa_manager.get_pair(task)
-            if qa_pair and qa_pair.answer:
-                return self._format_qa_context(task, [qa_pair])
-                
+        try:                
             context = await self._generate_task_context(task)
             return context
             
@@ -303,141 +307,16 @@ class CurriculumAgent:
     async def _generate_task_context(self, task: str) -> str:
         """Generate task context"""
         try:
-            questions, concepts = await self.run_qa_step1(task)
-            
-            # Add questions and concepts to QA manager
-            for q, c in zip(questions, concepts):
-                self.qa_manager.add_pair(q, c)
-                
-            # Generate answers
-            answers = await self.run_qa_step2(questions)
-            
-            # Update QA pairs with answers
-            for q, a in zip(questions, answers):
-                self.qa_manager.update_answer(q, a)
-                
-            qa_pairs = [
-                self.qa_manager.get_pair(q)
-                for q in questions
-                if self.qa_manager.get_pair(q)
-            ]
-            
-            return self._format_qa_context(task, qa_pairs)
+            qa_pair = self.qa_manager.get_pair(task)
+            if qa_pair and qa_pair.answer:
+                return self.qa_manager._format_qa_context(task, [qa_pair])   
+                     
+            return self.qa_manager._generate_task_context(task)
             
         except Exception as e:
             self.logger.error(f"Failed to generate context: {e}")
             raise
-
-    def _format_qa_context(self, task: str, qa_pairs: List[QAPair]) -> str:
-        """Format QA pairs into context"""
-        context_parts = [
-            f"Task: {task}",
-            "\nKey Concepts:",
-            *[f"- {pair.concept}" for pair in qa_pairs],
-            "\nTechnical Q&A:"
-        ]
         
-        for pair in qa_pairs:
-            if pair.answer:
-                context_parts.extend([
-                    "\nQuestion:",
-                    pair.question,
-                    "Answer:",
-                    pair.answer
-                ])
-                
-        return "\n".join(context_parts)
-
-    async def run_qa_step1(self, task) -> Tuple[List[str], List[str]]:
-        """Execute QA Step 1 - Generate questions and concepts"""
-        try:
-            system_message = {
-                "content": self.prompts['qa_step1'].replace(
-                    "{{Task}}", task
-                )
-            }
-
-            # 加载已保存的观察数据
-            observation = self.get_saved_observation()
-            if not observation:
-                return f"No observation data available for task: {task}"
-
-            # 格式化观察数据为上下文
-            source_content = self._format_observation_context(task, observation)
-            content = f"Source Material:\n{source_content}"
-            
-            response = await self.llm(
-                query=content,
-                user="CurriculumAgent",
-                inputs={"system": system_message["content"]},
-                logger=self.logger
-            )
-            
-            if "error" in response:
-                raise ValueError(f"LLM error: {response['error']}")
-                
-            qa_response = response["answer"]
-            
-            # 提取 JSON 内容
-            qa_response = U.extract_json_from_markdown(qa_response)
-            parsed_response = json.loads(qa_response)
-            
-            # 从 JSON 中提取问题和概念
-            question_concept_pairs = parsed_response.get("questions", [])
-            if not question_concept_pairs:
-                self.logger.warning("No valid question-concept pairs found")
-                return [], []
-            
-            # 分离问题和概念
-            questions = [pair["question"].strip() for pair in question_concept_pairs]
-            concepts = [pair["concept"].strip() for pair in question_concept_pairs]
-            
-            self.logger.info(f"Generated {len(questions)} question-concept pairs")
-            return questions, concepts
-
-        except Exception as e:
-            self.logger.error(f"Error in run_qa_step1: {str(e)}")
-            return [], []
-
-    async def run_qa_step2(self, questions: List[str]) -> List[Optional[str]]:
-        """Execute QA Step 2 - Generate answers"""
-        answers = []
-        
-        for question in questions:
-            try:
-
-                # 加载已保存的观察数据
-                observation = self.get_saved_observation()
-                if not observation:
-                    return f"No observation data available for question: {question}"
-
-                # 格式化观察数据为上下文
-                source_content= self._format_observation_context(question, observation)
-                system_message = self.prompts['qa_step2']
-                content = (
-                    f"Question:\n{question}\n\n"
-                    f"Source Material:\n{source_content}"
-                )
-                
-                response = await self.llm(
-                    query=content,
-                    user="CurriculumAgent",
-                    inputs={"system": system_message},
-                    logger=self.logger
-                )
-                
-                if "error" in response:
-                    raise ValueError(f"LLM error: {response['error']}")
-                    
-                answers.append(response["answer"])
-                self.logger.debug(f"Generated answer for: {question[:50]}...")
-                
-            except Exception as e:
-                self.logger.error(f"Failed to answer: {question[:50]}... - {e}")
-                answers.append(None)
-                
-        self.logger.info(f"Generated {len(answers)} answers")
-        return answers
 
     def update_exploration_progress(self, info: Dict):
         """Update exploration progress"""
