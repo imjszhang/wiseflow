@@ -369,16 +369,13 @@ class Kaichi:
         loop = 1
         while loop <= maxloop:
             try:
-                """
+
                 if not task:
                     task, context = await self.curriculum_agent.propose_next_task(
                         max_retries=self.config.max_retries
                     )
                 else:
                     context = await self.curriculum_agent.get_task_context(task)
-                """
-                task="Implement a basic insight extraction feature using the get_insights function"
-                context=U.load_text("test_context.txt")
 
 
                 self.logger.info("Executing task %s (Loop %d/%d)", task, loop, maxloop)

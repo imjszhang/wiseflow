@@ -9,7 +9,6 @@ from llms.dify_wrapper import dify_llm_async
 import utils as U
 from prompts import load_prompt
 from env.project_observer import ProjectObserver
-from agents.qa import QAPair, QAManager, QAManagerConfig
 from agents.task import TaskProgress
 
 @dataclass
@@ -78,8 +77,7 @@ class CurriculumAgent:
         """Load all prompts"""
         return {
             'task_proposal': load_prompt("curriculum/task_proposal"),
-            'qa_step1': load_prompt("curriculum/qa_step1"),
-            'qa_step2': load_prompt("curriculum/qa_step2")
+            'task_context': load_prompt("curriculum/task_context")
         }
 
     def _init_system(self):
@@ -87,16 +85,6 @@ class CurriculumAgent:
         try:
             self._init_directories()
             self.task_progress = TaskProgress()
-
-            # Initialize qa manager
-            qa_config = QAManagerConfig(
-                ckpt_dir=self.config.ckpt_dir,
-                observation_dir=self.config.observation_dir,
-                cache_size=self.config.cache_size,
-                log_level=self.config.log_level
-            )
-
-            self.qa_manager = QAManager(qa_config)
             self._load_state()
             
         except Exception as e:
@@ -141,13 +129,6 @@ class CurriculumAgent:
             progress_data = U.load_json(f"{base_path}/progress.json")
             self.task_progress = TaskProgress.from_dict(progress_data)
             
-            # Load QA pairs
-            qa_data = U.load_json(f"{self.config.ckpt_dir}/qa/qa_pairs.json")
-            self.qa_manager = QAManager.from_dict(
-                qa_data, 
-                self.config.cache_size
-            )
-            
         except Exception as e:
             self.logger.warning(f"Failed to load state: {e}")
 
@@ -160,12 +141,6 @@ class CurriculumAgent:
             U.dump_json(
                 self.task_progress.to_dict(),
                 f"{base_path}/progress.json"
-            )
-            
-            # Save QA pairs
-            U.dump_json(
-                self.qa_manager.to_dict(),
-                f"{self.config.ckpt_dir}/qa/qa_pairs.json"
             )
             
         except Exception as e:
@@ -232,6 +207,39 @@ class CurriculumAgent:
             # 构建用户消息
             human_message = {
                 "content": "Based on the current project observation and progress, propose the next learning task."
+            }
+
+            return [system_message, human_message]
+
+        except Exception as e:
+            self.logger.error(f"Failed to prepare task proposal messages: {e}")
+            raise
+
+
+    def _prepare_task_context_messages(self,task:str) -> List[Dict]:
+        """Prepare messages for task proposal"""
+        try:
+
+            # 提取并保存观察数据
+            self.extract_and_save_observation()
+
+            # 加载已保存的观察数据
+            observation = self.get_saved_observation()
+            if not observation:
+                raise ValueError("No observation data available")
+
+            # 格式化项目观察数据
+            context= self._format_observation_context(task, observation)
+
+            # 构建系统消息
+            system_message = {
+                "content": self.prompts['task_context']
+                    .replace("{{context}}", context)
+            }
+
+            # 构建用户消息
+            human_message = {
+                "content": "任务："+task
             }
 
             return [system_message, human_message]
@@ -307,11 +315,25 @@ class CurriculumAgent:
     async def _generate_task_context(self, task: str) -> str:
         """Generate task context"""
         try:
-            qa_pair = self.qa_manager.get_pair(task)
-            if qa_pair and qa_pair.answer:
-                return self.qa_manager._format_qa_context(task, [qa_pair])   
-                     
-            return self.qa_manager._generate_task_context(task)
+            # 准备消息
+            messages = self._prepare_task_context_messages(task)
+
+            # 调用 LLM
+            response = await self.llm(
+                query=messages[1]["content"],
+                user="CurriculumAgent",
+                inputs={"system": messages[0]["content"]},
+                logger=self.logger
+            )
+
+            # 记录原始响应
+            self.logger.debug(f"Raw LLM Response: {response}")
+
+            if "error" in response:
+                raise ValueError(f"LLM error: {response['error']}")
+
+            # 返回响应
+            return response["answer"]
             
         except Exception as e:
             self.logger.error(f"Failed to generate context: {e}")
