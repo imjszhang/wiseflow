@@ -2,9 +2,9 @@ import socket
 import threading
 
 # 配置
-LISTEN_HOST = '10.8.0.2'  # 监听的 IP
+LISTEN_HOST = '127.0.0.1'  # 监听的 IP
 LISTEN_PORT = 8090        # 监听的端口
-FORWARD_HOST = '127.0.0.1'  # 转发的目标 IP
+FORWARD_HOST = '10.8.0.2'  # 转发的目标 IP
 FORWARD_PORT = 8090         # 转发的目标端口
 
 def handle_client(client_socket):
