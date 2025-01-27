@@ -1,8 +1,8 @@
 import asyncio
-from utils.pb_api import PbTalker
+from core.utils.pb_api import PbTalker
 from loguru import logger
 import os
-from utils.general_utils import get_logger_level
+from core.utils.general_utils import get_logger_level
 from dotenv import load_dotenv
 import httpx
 

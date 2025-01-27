@@ -8,16 +8,16 @@ import httpx
 from bs4 import BeautifulSoup
 from datetime import datetime
 from urllib.parse import urlparse
-from llms.openai_wrapper import openai_llm
-from llms.dify_wrapper import dify_llm
+from core.llms.openai_wrapper import openai_llm
+from core.llms.dify_wrapper import dify_llm
 from bs4.element import Comment
-from utils.general_utils import extract_and_convert_dates
+from core.utils.general_utils import extract_and_convert_dates
 import asyncio
 import json_repair
 import os
 from typing import Union
 from requests.compat import urljoin
-from scrapers import scraper_map
+from core.scrapers import scraper_map
 
 # Dynamically select LLM provider based on environment variable
 LLM_PROVIDER = os.environ.get("LLM_PROVIDER", "dify").lower()  # Default to "dify"

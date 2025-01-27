@@ -1,0 +1,74 @@
+2025-01-28 02:03:31.762 | ERROR    | __main__:test_pb_connection:22 - POCKETBASE_URL is not defined in configuration
+2025-01-28 02:05:01.574 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:05:02.399 | WARNING  | __main__:test_pb_connection:43 - ⚠️ Admin credentials not provided, skipping authentication test
+2025-01-28 02:05:02.534 | INFO     | __main__:test_pb_connection:54 - ✅ Successfully fetched tags collection
+2025-01-28 02:05:02.536 | INFO     | __main__:test_pb_connection:55 - Found 0 activated tags
+2025-01-28 02:05:02.539 | INFO     | __main__:test_pb_connection:65 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:14:29.341 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:14:29.342 | INFO     | __main__:test_pb_connection:26 - URL type: <class 'str'>, value: http://127.0.0.1:8091
+2025-01-28 02:14:30.047 | ERROR    | __main__:test_pb_connection:37 - ❌ Cannot connect to PocketBase server: 'PocketBase' object has no attribute 'health'
+2025-01-28 02:14:30.067 | ERROR    | __main__:test_pb_connection:38 - Please check if the PocketBase server is running and the URL is correct
+2025-01-28 02:15:28.330 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:15:29.143 | WARNING  | __main__:test_pb_connection:43 - ⚠️ Admin credentials not provided, skipping authentication test
+2025-01-28 02:15:29.164 | INFO     | __main__:test_pb_connection:54 - ✅ Successfully fetched tags collection
+2025-01-28 02:15:29.165 | INFO     | __main__:test_pb_connection:55 - Found 0 activated tags
+2025-01-28 02:15:29.166 | INFO     | __main__:test_pb_connection:65 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:22:11.082 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:22:11.798 | WARNING  | __main__:test_pb_connection:43 - ⚠️ Admin credentials not provided, skipping authentication test
+2025-01-28 02:22:11.836 | INFO     | __main__:test_pb_connection:54 - ✅ Successfully fetched tags collection
+2025-01-28 02:22:11.836 | INFO     | __main__:test_pb_connection:55 - Found 0 activated tags
+2025-01-28 02:22:11.836 | INFO     | __main__:test_pb_connection:65 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:23:28.604 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:23:29.292 | ERROR    | __main__:test_pb_connection:69 - ❌ Unexpected error during PocketBase connection test: 'ClientResponseError' object has no attribute 'message'
+2025-01-28 02:24:36.866 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:24:37.587 | ERROR    | __main__:test_pb_connection:40 - ❌ Authentication failed: Response error. Status code:404
+2025-01-28 02:26:13.483 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:26:14.206 | ERROR    | __main__:test_pb_connection:40 - ❌ Authentication failed: Response error. Status code:404
+2025-01-28 02:28:59.022 | INFO     | __main__:test_pb_connection:24 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:28:59.813 | ERROR    | __main__:test_pb_connection:39 - ❌ Authentication failed: Response error. Status code:404
+2025-01-28 02:30:47.068 | INFO     | __main__:test_pb_connection:24 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:30:48.771 | INFO     | __main__:test_pb_connection:36 - ✅ Authentication successful!
+2025-01-28 02:30:48.775 | INFO     | __main__:test_pb_connection:37 - Authenticated as: 
+2025-01-28 02:30:48.781 | INFO     | __main__:test_pb_connection:53 - ✅ Successfully fetched tags collection
+2025-01-28 02:30:48.781 | INFO     | __main__:test_pb_connection:54 - Found 1 activated tags
+2025-01-28 02:30:48.786 | INFO     | __main__:test_pb_connection:58 - Tag: OpenAI (ID: nkxga96051sc4d7)
+2025-01-28 02:30:48.788 | INFO     | __main__:test_pb_connection:64 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:31:29.351 | INFO     | __main__:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:31:30.425 | INFO     | __main__:test_pb_connection:37 - ✅ Authentication successful!
+2025-01-28 02:31:30.427 | INFO     | __main__:test_pb_connection:38 - Authenticated as: 
+2025-01-28 02:31:30.436 | INFO     | __main__:test_pb_connection:54 - ✅ Successfully fetched tags collection
+2025-01-28 02:31:30.439 | INFO     | __main__:test_pb_connection:55 - Found 1 activated tags
+2025-01-28 02:31:30.441 | INFO     | __main__:test_pb_connection:59 - Tag: OpenAI (ID: nkxga96051sc4d7)
+2025-01-28 02:31:30.443 | INFO     | __main__:test_pb_connection:65 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:54:04.603 | INFO     | scripts.test_pb_connection:test_pb_connection:25 - Testing connection to PocketBase at: http://127.0.0.1:8091
+2025-01-28 02:54:05.035 | INFO     | scripts.test_pb_connection:test_pb_connection:37 - ✅ Authentication successful!
+2025-01-28 02:54:05.035 | INFO     | scripts.test_pb_connection:test_pb_connection:38 - Authenticated as: 
+2025-01-28 02:54:05.042 | INFO     | scripts.test_pb_connection:test_pb_connection:54 - ✅ Successfully fetched tags collection
+2025-01-28 02:54:05.042 | INFO     | scripts.test_pb_connection:test_pb_connection:55 - Found 1 activated tags
+2025-01-28 02:54:05.047 | INFO     | scripts.test_pb_connection:test_pb_connection:59 - Tag: OpenAI (ID: nkxga96051sc4d7)
+2025-01-28 02:54:05.049 | INFO     | scripts.test_pb_connection:test_pb_connection:65 - 🎉 All PocketBase connection tests passed successfully!
+2025-01-28 02:54:05.052 | INFO     | __main__:main:78 - 
+Starting insight extraction tests...
+2025-01-28 02:54:05.059 | INFO     | __main__:test_insight_extraction:18 - Initializing InsightExtractor...
+2025-01-28 02:54:05.537 | INFO     | core.insights.get_insight:_authenticate_pocketbase:65 - Authenticated with PocketBase successfully.
+2025-01-28 02:54:05.543 | INFO     | __main__:test_insight_extraction:34 - Testing get_insights method...
+2025-01-28 02:54:05.545 | DEBUG    | core.llms.dify_wrapper:dify_llm:38 - query: 
+        [from 新华社] 近日，国家发展改革委等部门联合印发《关于推进人工智能进校园的指导意见》。
+        《意见》提出，到2025年，基本建立人工智能进校园的政策制度体系和实施机制，形成一批可复制可推广的经验做法。
+
+        专家表示，人工智能技术在教育领域的应用，可以实现因材施教、个性化学习，提高教育教学质量和效率。
+        同时，也要注意防范人工智能应用中的数据安全、隐私保护等风险。
+
+        教育部相关负责人表示，将加强人工智能教育资源建设，支持开发适合不同学段的人工智能教育课程和教材，
+        培养具有人工智能素养的创新型人才。同时，也将加强教师培训，提升教师运用人工智能技术的能力。
+        
+2025-01-28 02:54:05.550 | DEBUG    | core.llms.dify_wrapper:dify_llm:39 - user: wiseflow
+2025-01-28 02:54:05.554 | DEBUG    | core.llms.dify_wrapper:dify_llm:40 - conversation_id: None
+2025-01-28 02:54:05.555 | DEBUG    | core.llms.dify_wrapper:dify_llm:41 - inputs: {'system': '你是一位专业的信息提取和分析专家。你的核心任务是从文章中精确提取与以下标签相关的高价值洞察：\n\n关注标签和说明：\n<tag>OpenAI</tag>\n与OpenAI公司相关的信息\n\n\n工作原则：\n\n1. 严格的标签匹配\n- 只输出与关注标签完全一致的标签名称\n- 确保输出格式为 <tag>关注标签中的原始标签名</tag>\n- 禁止创造或修改标签名称\n- 如果信息不符合任何已定义的标签，则不输出\n\n2. 信息提取标准\n核心维度：\n- 新变化：识别重要的变动和进展\n- 关键数据：提取具体的数字和事实\n- 影响机制：分析变化带来的影响\n- 发展趋势：预判未来的发展方向\n\n质量要求：\n- 准确性：信息必须真实可验证\n- 完整性：包含完整的事实链条\n- 价值性：具有决策参考价值\n- 时效性：优先提取最新信息\n\n3. 输出规范\n格式要求：\n<tag>关注标签名称</tag>提取的完整信息\n\n信息构成：\n- 核心事实 + 关键数据 + 影响分析\n- 控制在30-100字之间\n- 保持语言简洁专业\n- 确保单条信息独立完整\n\n4. 质量控制\n评估标准：\n- 标签匹配度：信息是否与标签定义严格相关\n- 信息完整度：是否包含必要的事实和数据\n- 价值显著性：是否具有明确的参考价值\n- 表述专业性：是否使用准确的专业语言\n\n禁止事项：\n- 不创造或修改标签名称\n- 不输出主观评论和建议\n- 不使用模糊或推测性表述\n- 不进行跨标签信息混合\n\n示例：\n输入：\nOpenAI发布GPT-4 Turbo，上下文窗口扩展至128K，成本降低50%，新增JSON格式输出模式。\n\n错误示例：\n<tag>技术进展</tag>GPT-4 Turbo发布，性能提升显著。\n（错误原因：使用了未定义的标签名）\n\n正确示例：\n<tag>OpenAI动态</tag>GPT-4 Turbo发布重要升级：上下文窗口扩展至128K，API成本降低50%，并新增JSON输出模式，显著提升开发集成效率。\n（正确原因：使用了定义的标签，包含具体数据和影响分析）\n\n请仔细阅读文章内容，按照以上要求提取信息。如果没有与关注标签相关的有价值信息，请回复："未发现与关注标签相关的有价值信息。"'}
+2025-01-28 02:54:05.562 | DEBUG    | core.llms.dify_wrapper:dify_llm:42 - response_mode: blocking
+2025-01-28 02:54:05.564 | DEBUG    | core.llms.dify_wrapper:dify_llm:43 - kwargs: {}
+2025-01-28 02:54:07.755 | DEBUG    | core.llms.dify_wrapper:dify_llm:62 - API response: {'event': 'message', 'task_id': 'df982b14-9075-425c-ae10-25955d7c738d', 'id': 'd73eeb5e-166e-4790-bb2f-d1c91d4b3b7d', 'message_id': 'd73eeb5e-166e-4790-bb2f-d1c91d4b3b7d', 'conversation_id': '5c378079-69ec-49ae-935b-9f1f3236c232', 'mode': 'advanced-chat', 'answer': '未发现与关注标签相关的有价值信息。', 'metadata': {'usage': {'prompt_tokens': 767, 'prompt_unit_price': '2.50', 'prompt_price_unit': '0.000001', 'prompt_price': '0.0019175', 'completion_tokens': 12, 'completion_unit_price': '10.00', 'completion_price_unit': '0.000001', 'completion_price': '0.0001200', 'total_tokens': 779, 'total_price': '0.0020375', 'currency': 'USD', 'latency': 1.1426640190184116}}, 'created_at': 1738004046}
+2025-01-28 02:54:07.765 | DEBUG    | core.insights.get_insight:_parse_llm_output:176 - Cannot find info, LLM result:
+未发现与关注标签相关的有价值信息。
+2025-01-28 02:54:07.765 | WARNING  | __main__:test_insight_extraction:47 - ⚠️ No insights were extracted from the test article
+2025-01-28 02:54:07.775 | INFO     | __main__:test_insight_extraction:61 - 🎉 All insight extraction tests completed!

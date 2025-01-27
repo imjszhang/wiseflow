@@ -3,8 +3,15 @@ from pydantic import BaseModel
 from typing import Literal, Optional
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import HTTPException
-from insights import message_manager
-from reports import ReportService
+from core.insights import message_manager
+from core.reports import ReportService
+import os
+import httpx
+import logging
+
+# 设置日志
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 
 class Request(BaseModel):
@@ -168,3 +175,31 @@ async def report(request: ReportRequest):
     - 生成的报告内容（由 ReportService 提供）。
     """
     return await rs.report(request.insight_id, request.toc, request.comment)
+
+
+async def verify_admin():
+    pb_api_base = os.getenv("PB_API_BASE")
+    pb_api_auth = os.getenv("PB_API_AUTH")
+    
+    try:
+        async with httpx.AsyncClient() as client:
+            # 打印请求信息
+            logger.debug(f"Attempting to connect to: {pb_api_base}/api/admins/auth-refresh")
+            logger.debug(f"Using Authorization header: {pb_api_auth[:10]}...")
+            
+            response = await client.post(
+                f"{pb_api_base}/api/admins/auth-refresh",
+                headers={"Authorization": pb_api_auth}
+            )
+            
+            # 打印响应信息
+            logger.debug(f"Response status code: {response.status_code}")
+            logger.debug(f"Response content: {response.text}")
+            
+            if response.status_code != 200:
+                raise Exception(f"验证失败: {response.text}")
+            
+            return True
+    except Exception as e:
+        logger.error(f"验证过程中发生错误: {str(e)}")
+        raise e

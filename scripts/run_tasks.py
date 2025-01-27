@@ -1,7 +1,7 @@
 import os
 from dotenv import load_dotenv
 import asyncio
-from insights import pipeline, pb, logger
+from core.insights import pipeline, pb, logger
 # 加载 .env 文件
 env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../.env')
 load_dotenv(dotenv_path=env_path)

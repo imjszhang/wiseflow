@@ -2,10 +2,14 @@ import os
 from openai import OpenAI
 from openai import RateLimitError
 import time
+from dotenv import load_dotenv
+
+# 加载环境变量
+load_dotenv(override=True)
 
 
-base_url = os.environ.get('LLM_API_BASE', "")
-token = os.environ.get('LLM_API_KEY', "")
+base_url = os.getenv('LLM_API_BASE', "")
+token = os.getenv('LLM_API_KEY', "")
 
 if not base_url and not token:
     raise ValueError("LLM_API_BASE or LLM_API_KEY must be set")

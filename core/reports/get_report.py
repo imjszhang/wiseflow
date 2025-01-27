@@ -7,12 +7,12 @@ from docx.oxml.ns import qn
 from docx.shared import Pt, RGBColor
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from datetime import datetime
-from llms.openai_wrapper import openai_llm
-from llms.dify_wrapper import dify_llm
+from core.llms.openai_wrapper import openai_llm
+from core.llms.dify_wrapper import dify_llm
 from loguru import logger
-from utils.general_utils import get_logger_level, isChinesePunctuation
-from utils.pb_api import PbTalker
-from utils.prompt_utils import load_prompt_template
+from core.utils.general_utils import get_logger_level, isChinesePunctuation
+from core.utils.pb_api import PbTalker
+from core.utils.prompt_utils import load_prompt_template
 import uuid
 
 
@@ -33,6 +33,9 @@ class ReportService:
         # 内存存储，用于缓存 insight 的历史数据
         self.memory = {}
 
+        # 初始化 PbTalker
+        self.pb = PbTalker(logger)
+
         logger.info('Backend service initialized successfully.')
 
     async def report(self, insight_id: str, topics: list[str], comment: str) -> dict:
@@ -45,7 +48,7 @@ class ReportService:
         :return: dict - 包含生成状态和结果的字典
         """
         logger.debug(f'Got new report request for insight_id {insight_id}')
-        insight = pb.read('insights', filter=f'id="{insight_id}"')
+        insight = self.pb.read('insights', filter=f'id="{insight_id}"')
         if not insight:
             logger.error(f'Insight {insight_id} not found')
             return self.build_out(-2, 'Insight not found')
@@ -56,7 +59,7 @@ class ReportService:
             return self.build_out(-2, 'Cannot find articles for insight')
 
         # 获取相关文章
-        article_list = [pb.read('articles', fields=['title', 'abstract', 'content', 'url', 'publish_time'], filter=f'id="{_id}"')
+        article_list = [self.pb.read('articles', fields=['title', 'abstract', 'content', 'url', 'publish_time'], filter=f'id="{_id}"')
                         for _id in article_ids]
         article_list = [_article[0] for _article in article_list if _article]
 
@@ -75,7 +78,7 @@ class ReportService:
         if flag:
             # 上传生成的报告到 PB
             file = open(docx_file, 'rb')
-            message = pb.upload('insights', insight_id, 'docx', f'{insight_id}.docx', file)
+            message = self.pb.upload('insights', insight_id, 'docx', f'{insight_id}.docx', file)
             file.close()
             if message:
                 logger.debug(f'Report successfully generated and uploaded: {message}')
@@ -111,9 +114,6 @@ logger.add(
     diagnose=True,
     rotation="50 MB"
 )
-
-# 初始化 PbTalker
-pb = PbTalker(logger)
 
 # 最大输入 token 限制
 max_input_tokens = 30000
