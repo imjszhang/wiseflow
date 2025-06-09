@@ -12,3 +12,4 @@ work_dir
 test/webpage_samples/
 /docker
 pb/pocketbase.exe
+work_dir_for_test
