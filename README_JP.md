@@ -1,6 +1,6 @@
 # AI チーフインテリジェンスオフィサー（Wiseflow）
 
-**[English](README_EN.md) | [한국어](README_KR.md) | [Deutsch](README_DE.md) | [Français](README_FR.md) | [العربية](README_AR.md) | [简体中文](README.md)**
+**[简体中文](README.md) | [English](README_EN.md) | [日本語](README_JP.md) | [한국어](README_KR.md) | [Deutsch](README_DE.md) | [Français](README_FR.md) | [العربية](README_AR.md)**
 
 🚀 **大規模言語モデルを使用して、日々の膨大な情報や様々なソースから、あなたが本当に興味のある情報を掘り起こしましょう！**
 
@@ -12,9 +12,12 @@ https://github.com/user-attachments/assets/2c52c010-6ae7-47f4-bc1c-5880c4bd76f3
 
 （オンラインサービスは現在技術的な理由により4.0コアに切り替わっていませんが、アップグレードを加速しています）
 
-3ヶ月の待機期間を経て、ついにwiseflow 4.0バージョンが正式にリリースされました！このバージョンでは、全く新しい4.xアーキテクチャを導入し、ソーシャルメディアソースのサポートと多くの新機能を提供します。
+3ヶ月にわたる待機期間を経て、ついにwiseflow 4.0バージョンが正式にリリースされました！このバージョンでは、全く新しい4.xアーキテクチャを導入し、ソーシャルメディアソースのサポートと多くの新機能を提供します。
 
-4.xにはWIS Crawler（Crawl4ai、MediaCrawler、Nodriverを基に深く再構築・統合）が内蔵されており、ウェブページに加えてソーシャルメディアソースもサポートしています。4.0バージョンではまずWeiboとKuaishouのサポートを提供し、今後順次追加予定のプラットフォームは以下の通りです：
+4.xにはWIS Crawler（Crawl4ai、MediaCrawler、Nodriverを基に深く再構築・統合）が内蔵されており、ウェブページに加えてソーシャルメディアソースもサポートしています。
+
+オープンソース版ではWeiboとKuaishouをサポートしており、今後**Pro版**で追加サポートされるプラットフォームは以下の通りです：
+
 WeChat公式アカウント、Xiaohongshu、Douyin、Bilibili、Zhihu...
 
 4.xアーキテクチャがもたらすその他の新機能：
@@ -37,36 +40,31 @@ WeChat公式アカウント、Xiaohongshu、Douyin、Bilibili、Zhihu...
 ## ✋ Wiseflowが他のAI駆動クローラーと異なる点は？
 
 - ウェブページ、ソーシャルメディア（現在はWeiboとKuaishouプラットフォームをサポート）、RSSソース、検索エンジンなどを含む、フルプラットフォームの取得能力
-- 単なるクローリングだけでなく、自動分析とフィルタリングを行い、14bパラメータのLLMで十分に機能
-- ユーザーフレンドリー（開発者だけでなく）、コーディング不要、「すぐに使える」
+- 独自のHTML処理ワークフローにより、注目点に基づいて情報を自動抽出し、さらなる探索に値するリンクを発見、14bパラメータのLLMで十分に機能
+- ユーザーフレンドリー（開発者だけでなく）、Xpathなどの手動設定不要、「すぐに使える」
 - 継続的なイテレーションによる高い安定性と可用性、システムリソースと速度のバランスを考慮した処理効率
-- （将来）insightモジュールを通じて、取得した情報の下に隠された「暗い情報」を掘り起こす能力
+- 単なる「クローラー」にとどまらない……
 
-……… また、興味のある開発者の参加を期待し、誰もが使えるAIチーフインテリジェンスオフィサーを一緒に構築しましょう！
+<img src="docs/wiseflow4.xscope.png" alt="4.x full scope" width="720">
+
+(4.xアーキテクチャ全体計画図。破線枠内は未完成の部分です。能力のあるコミュニティ開発者が私たちに参加し、PRを貢献してくれることを願っています。すべての貢献者にはPro版の無料使用権が付与されます！)
 
 ## 🌟 クイックスタート
 
 **たった3ステップで始められます！**
 
-### 📋 プロジェクトのソースコードをダウンロードし、uvとpocketbaseをインストール
+**Windowsユーザーは事前にGit Bashツールをダウンロードし、bashで以下のコマンドを実行してください [Bashダウンロードリンク](https://git-scm.com/downloads/win)**·
 
-- MacOS/Linux用：
+### 📋 プロジェクトのソースコードをダウンロードし、uvとpocketbaseをインストール
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- Windows用：
+上記の操作でuvのインストールが完了します。
 
-**Windowsユーザーは事前にGit Bashツールをダウンロードし、bashで以下のコマンドを実行してください [Bashダウンロードリンク](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-上記の操作でuvのインストールが完了します。pocketbaseのインストールについては、[pocketbase docs](https://pocketbase.io/docs/)を参照してください
+次に、[pocketbase docs](https://pocketbase.io/docs/)からお使いのシステムに対応するpocketbaseプログラムをダウンロードし、[.pb](./pb/)フォルダに配置してください。
 
 install_pocketbase.sh（MacOS/Linux用）またはinstall_pocketbase.ps1（Windows用）を使用してインストールすることもできます。
 
@@ -79,30 +77,21 @@ wiseflowフォルダ（プロジェクトのルートディレクトリ）でenv
 - LLM_API_KEY="" # LLM サービスのキー (すべての OpenAI 形式 API を提供するモデル サービスを使用できます。ローカルで ollama を使用してデプロイする場合は設定する必要はありません)
 - LLM_API_BASE="https://api.siliconflow.cn/v1" # LLM サービス インターフェース アドレス
 - JINA_API_KEY="" # 検索エンジン サービスのキー (Jina 推奨、個人使用であれば登録なしで申請可能)
-- PRIMARY_MODEL="Qwen3-14B" # 推奨 Qwen3-14B または同等の思考モデル
+- PRIMARY_MODEL=Qwen/Qwen3-14B # 推奨 Qwen3-14B または同等の思考モデル
+- VL_MODEL=Pro/Qwen/Qwen2.5-VL-7B-Instruct # あったほうが良い
 
 ### 🚀 起動！
-
-- MacOS/Linux用：
 
 ```bash
 cd wiseflow
 uv venv # 初回実行時のみ必要
+source .venv/bin/activate  # Linux/macOS
+# または Windows 上：
+# .venv\Scripts\activate
 uv sync # 初回実行時のみ必要
 python -m playwright install --with-deps chromium # 初回実行時のみ必要
 chmod +x run.sh # 初回実行時のみ必要
 ./run.sh
-```
-
-- Windows用：
-
-```bash
-cd wiseflow
-uv venv # 初回実行時のみ必要
-uv sync # 初回実行時のみ必要
-python -m playwright install --with-deps chromium # 初回実行時のみ必要
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # 初回実行時のみ必要
-.\run.ps1
 ```
 
 詳細な使用方法については、[docs/manual/manual_ja.md](./docs/manual/manual_ja.md)を参照してください

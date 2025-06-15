@@ -53,27 +53,20 @@ focus_point 폼으로 전환하세요
 
 **배포 설치는 3단계만으로 완료됩니다！**
 
-### 📋 프로젝트 소스 코드 다운로드 및 uv와 PocketBase 설치
+**Windows 사용자는 사전에 Git Bash 도구를 다운로드하고 bash에서 다음 명령을 실행하세요 [Bash 다운로드 링크](https://git-scm.com/downloads/win)**
 
-- MacOS/Linux용：
+### 📋 프로젝트 소스 코드 다운로드 및 uv와 pocketbase 설치
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- Windows용：
+위 작업으로 uv 설치가 완료됩니다.
 
-**Windows 사용자는 사전에 Git Bash 도구를 다운로드하고 bash에서 다음 명령을 실행하세요 [Bash 다운로드 링크](https://git-scm.com/downloads/win)**
+다음으로 [pocketbase docs](https://pocketbase.io/docs/) 에서 자신의 운영체제에 맞는 pocketbase 프로그램을 다운로드하여 [.pb](./pb/) 폴더에 위치시키세요.
 
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-위 작업으로 uv 설치가 완료됩니다. PocketBase 설치에 대해서는 [PocketBase docs](https://pocketbase.io/docs/)를 참조하세요.
-
-install_pocketbase.sh（MacOS/Linux용）또는 install_pocketbase.ps1（Windows용）를 사용하여 설치할 수도 있습니다.
+install_pocketbase.sh(MacOS/Linux용) 또는 install_pocketbase.ps1(Windows용)을 사용하여 설치할 수도 있습니다.
 
 ### 📥 env_sample을 기반으로 .env 파일 설정
 
@@ -89,26 +82,16 @@ wiseflow 폴더（프로젝트 루트 디렉토리）에서 env_sample을 기반
 
 ### 🚀 시작해 보세요！
 
-- MacOS/Linux용：
-
 ```bash
 cd wiseflow
-uv venv # 첫 실행 시에만 필요
-uv sync # 첫 실행 시에만 필요
-python -m playwright install --with-deps chromium # 첫 실행 시에만 필요
-chmod +x run.sh # 첫 실행 시에만 필요
+uv venv # 처음 실행할 때만 필요
+source .venv/bin/activate  # Linux/macOS
+# 또는 Windows에서:
+# .venv\Scripts\activate
+uv sync # 처음 실행할 때만 필요
+python -m playwright install --with-deps chromium # 처음 실행할 때만 필요
+chmod +x run.sh # 처음 실행할 때만 필요
 ./run.sh
-```
-
-- Windows용：
-
-```bash
-cd wiseflow
-uv venv # 첫 실행 시에만 필요
-uv sync # 첫 실행 시에만 필요
-python -m playwright install --with-deps chromium # 첫 실행 시에만 필요
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # 첫 실행 시에만 필요
-.\run.ps1
 ```
 
 ✨ **이렇게 간단합니다！** 시작 스크립트는 자동으로 다음 작업을 완료합니다：
@@ -263,11 +246,12 @@ JINA_API_KEY=Your_API_KEY
 
 오픈 소스는 쉽지 않습니다 ☺️ 문서 작성과 상담 Q&A는 더욱 시간이 많이 걸립니다. 지원을 제공해 주시면 더 나은 품질의 서비스를 제공하겠습니다~
 
-- 상세 튜토리얼 비디오 + 3회 이메일 Q&A 세션：$1.99
-- 상세 튜토리얼 비디오 + 3회 이메일 Q&A 세션 + 유료 사용자 WeChat 그룹 참여：$2.99
+- 상세 튜토리얼 영상 + 이메일 질의응답 3회 + 유료 사용자 위챗 그룹 가입: ￥36.88
 
-*참고：유료 사용자 그룹은 Q&A 서비스를 제공하지 않으며, 제품 요구사항과 사용 경험 교환만을 목적으로 합니다. 향후 반복에서는 유료 사용자 그룹의 고빈도 요구사항을 우선시하며, 시스템 최적화는 주로 유료 사용자 그룹의 사례를 대상으로 합니다*
+*참고: 유료 사용자 그룹 내에서는 질의응답 서비스를 제공하지 않으며, 제품 요구사항 및 사용 후기 교류만을 목적으로 합니다. 추후 업데이트 시 유료 사용자 그룹의 고빈도 요구사항을 우선적으로 고려하며, 시스템 최적화 또한 유료 사용자 그룹의 사례를 중심으로 진행될 예정입니다.*
 
-결제 방법：아래 결제 코드를 스캔하고 결제 시 비고란에 이메일 주소를 기재하세요. 24시간 이내에 연락하여 서비스를 제공하겠습니다.
+구매 방법: 아래 결제 코드를 스캔한 후 위챗(WeChat) ID: bigbrother666sh 를 추가하고 결제 스크린샷을 보내주세요.
 
-<img src="alipay.png" alt="Alipay 결제 코드" width="300">      <img src="weixinpay.jpg" alt="WeChat 결제 코드" width="300"> 
+(친구 추가 후 최대 8시간 이내에 수락됩니다. 35252986@qq.com 이메일로도 연락 가능합니다.)
+
+<img src="alipay.png" alt="알리페이 결제 코드" width="300">      <img src="weixinpay.jpg" alt="위챗페이 결제 코드" width="300"> 

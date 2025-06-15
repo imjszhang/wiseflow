@@ -1,6 +1,6 @@
 # AI Chief Intelligence Officer (Wiseflow)
 
-**[简体中文](README.md) | [日本語](README_JP.md) | [한국어](README_KR.md) | [Deutsch](README_DE.md) | [Français](README_FR.md) | [العربية](README_AR.md)**
+**[简体中文](README.md) | [English](README_EN.md) | [日本語](README_JP.md) | [한국어](README_KR.md) | [Deutsch](README_DE.md) | [Français](README_FR.md) | [العربية](README_AR.md)**
 
 🚀 **Use large language models to mine information you're truly interested in from massive data and various sources daily!**
 
@@ -12,9 +12,12 @@ https://github.com/user-attachments/assets/2c52c010-6ae7-47f4-bc1c-5880c4bd76f3
 
 (Online service is currently not switched to 4.0 core due to technical reasons, we are accelerating the upgrade)
 
-After three months of waiting, we are finally pleased to announce the official release of the wiseflow 4.0 version! This version introduces a completely new 4.x architecture, introduces support for social media sources, and brings many new features.
+In long three-month waiting, we are finally pleased to announce the official release of the wiseflow 4.0 version! This version introduces a completely new 4.x architecture, introduces support for social media sources, and brings many new features.
 
-4.x includes WIS Crawler (deeply reconstructed and integrated based on Crawl4ai, MediaCrawler, and Nodriver), which now provides complete support for web pages and social media sources. The 4.0 version initially provides support for the Weibo and Kuaishou platforms, with plans to add other platforms gradually, including:
+4.x includes WIS Crawler (deeply reconstructed and integrated based on Crawl4ai, MediaCrawler, and Nodriver), which now provides support for web pages and social media sources.
+
+The open-source version provides support for Weibo and Kuaishou, with **pro version** additionally supporting:
+
 WeChat official accounts, Xiaohongshu, Douyin, Bilibili, Zhihu...
 
 Other new features brought by the 4.x architecture include:
@@ -37,36 +40,31 @@ Specifically, "deep search" is where LLM autonomously plans search paths for spe
 ## ✋ What Makes Wiseflow Different from Other AI-Powered Crawlers?
 
 - Full platform acquisition capabilities, including web pages, social media (currently supporting Weibo and Kuaishou platforms), RSS sources, search engines, etc.;
-- Not just crawling, but automatic analysis and filtering, working well with just a 14b parameter LLM;
-- User-friendly (not just for developers), no coding required, "ready to use";
+- Unique HTML processing workflow that automatically extracts information based on focus points and discovers links worth further exploration, working well with just a 14b parameter LLM;
+- User-friendly (not just for developers), no need for manual Xpath configuration, "ready to use";
 - High stability and availability through continuous iteration, and processing efficiency that balances system resources and speed;
-- (Future) Ability to mine "hidden information" beneath acquired information through the insight module
+- It will be more than just a "crawler"...
 
-……… We also look forward to interested developers joining us to build an AI Chief Intelligence Officer accessible to everyone!
+<img src="docs/wiseflow4.xscope.png" alt="4.x full scope" width="720">
+
+(4.x architecture overall scope. The dashed box indicates the unfinished parts. We hope capable community developers will join us and contribute PRs. All contributors will receive free access to the pro version!)
 
 ## 🌟 Quick Start
 
 **Just three steps to get started!**
 
-### 📋 Download Project Source Code and Install uv and pocketbase
+**Windows users please download Git Bash tool in advance and execute the following commands in bash [Bash Download Link](https://git-scm.com/downloads/win)**
 
-- for MacOS/Linux:
+### 📋 Download Project Source Code and Install uv and pocketbase
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- for Windows:
+The above operations will complete the installation of uv. 
 
-**Windows users please download Git Bash tool in advance and execute the following commands in bash [Bash Download Link](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-The above operations will complete the installation of uv. For pocketbase installation, please refer to [pocketbase docs](https://pocketbase.io/docs/)
+Next, go to [pocketbase docs](https://pocketbase.io/docs/) to download the corresponding pocketbase program for your system and place it in the [.pb](./pb/) folder.
 
 You can also try using install_pocketbase.sh (for MacOS/Linux) or install_pocketbase.ps1 (for Windows) to install.
 
@@ -79,30 +77,21 @@ Version 4.x does not require users to provide pocketbase credentials in .env, no
 - LLM_API_KEY="" # LLM service key (any model provider offering OpenAI format API, not required if using ollama locally)
 - LLM_API_BASE="https://api.siliconflow.cn/v1" # LLM service interface address
 - JINA_API_KEY="" # Search engine service key (Jina recommended, even available without registration for personal use)
-- PRIMARY_MODEL="Qwen3-14B" # Recommended Qwen3-14B or equivalent thinking model
+- PRIMARY_MODEL=Qwen/Qwen3-14B # Recommended Qwen3-14B or equivalent thinking model
+- VL_MODEL=Pro/Qwen/Qwen2.5-VL-7B-Instruct # better to have
 
 ### 🚀 Take Off!
-
-- for MacOS/Linux:
 
 ```bash
 cd wiseflow
 uv venv # only needed the first time
+source .venv/bin/activate  # Linux/macOS
+# or Windows:
+# .venv\Scripts\activate
 uv sync # only needed the first time
 python -m playwright install --with-deps chromium # only needed the first time
 chmod +x run.sh # only needed the first time
 ./run.sh
-```
-
-- for Windows:
-
-```bash
-cd wiseflow
-uv venv # only needed the first time
-uv sync # only needed the first time
-python -m playwright install --with-deps chromium # only needed the first time
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # only needed the first time
-.\run.ps1
 ```
 
 For detailed usage instructions, please refer to [docs/manual/manual_en.md](./docs/manual/manual_en.md)

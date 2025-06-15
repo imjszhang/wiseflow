@@ -53,25 +53,18 @@ focus_pointフォームに切り替えてください
 
 **デプロイメントインストールは3ステップだけ！**
 
-### 📋 プロジェクトソースコードのダウンロードとuvとPocketBaseのインストール
+**Windowsユーザーは事前にGit Bashツールをダウンロードし、bashで以下のコマンドを実行してください [Bashダウンロードリンク](https://git-scm.com/downloads/win)**·
 
-- MacOS/Linux用：
+### 📋 プロジェクトのソースコードをダウンロードし、uvとpocketbaseをインストール
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- Windows用：
+上記の操作でuvのインストールが完了します。
 
-**Windowsユーザーは事前にGit Bashツールをダウンロードし、bashで以下のコマンドを実行してください [Bashダウンロードリンク](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-上記の操作でuvのインストールが完了します。PocketBaseのインストールについては、[PocketBase docs](https://pocketbase.io/docs/)を参照してください。
+次に、[pocketbase docs](https://pocketbase.io/docs/)からお使いのシステムに対応するpocketbaseプログラムをダウンロードし、[.pb](./pb/)フォルダに配置してください。
 
 install_pocketbase.sh（MacOS/Linux用）またはinstall_pocketbase.ps1（Windows用）を使用してインストールすることもできます。
 
@@ -89,26 +82,16 @@ wiseflowフォルダ（プロジェクトルートディレクトリ）で、env
 
 ### 🚀 さあ始めましょう！
 
-- MacOS/Linux用：
-
 ```bash
 cd wiseflow
 uv venv # 初回実行時のみ必要
+source .venv/bin/activate  # Linux/macOS
+# または Windows 上：
+# .venv\Scripts\activate
 uv sync # 初回実行時のみ必要
 python -m playwright install --with-deps chromium # 初回実行時のみ必要
 chmod +x run.sh # 初回実行時のみ必要
 ./run.sh
-```
-
-- Windows用：
-
-```bash
-cd wiseflow
-uv venv # 初回実行時のみ必要
-uv sync # 初回実行時のみ必要
-python -m playwright install --with-deps chromium # 初回実行時のみ必要
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # 初回実行時のみ必要
-.\run.ps1
 ```
 
 ✨ **これだけです！** 起動スクリプトは自動的に以下のタスクを完了します：
@@ -263,11 +246,12 @@ JINA_API_KEY=Your_API_KEY
 
 オープンソースは簡単ではありません ☺️ ドキュメントの作成と相談Q&Aはさらに時間がかかります。サポートを提供していただければ、より良い品質のサービスを提供します〜
 
-- 詳細なチュートリアルビデオ + 3回のメールQ&Aセッション：$1.99
-- 詳細なチュートリアルビデオ + 3回のメールQ&Aセッション + 有料ユーザーWeChatグループへの参加：$2.99
+- 詳細なチュートリアル動画 + 3回のメール質疑応答 + 有料ユーザーWeChatグループへの参加：¥36.88
 
-*注意：有料ユーザーグループはQ&Aサービスを提供せず、製品要件と使用経験の交換のみを目的としています。将来のイテレーションでは、有料ユーザーグループからの高頻度要件を優先し、システム最適化は主に有料ユーザーグループのケースを対象とします*
+*注：有料ユーザーグループでは質疑応答サービスは提供しておらず、製品の要件や使用感の交流のみを目的としています。今後のイテレーションでは、有料ユーザーグループからの頻度の高い要望を優先的に考慮し、システムの最適化も有料ユーザーグループの事例を中心に行います。*
 
-支払い方法：以下の支払いコードをスキャンし、支払い時に備考欄にメールアドレスを記入してください。24時間以内にご連絡し、サービスを提供いたします。
+購入方法：以下の支払いコードをスキャンし、WeChat ID: bigbrother666sh を追加して、支払いのスクリーンショットを提供してください。
 
-<img src="alipay.png" alt="Alipay支払いコード" width="300">      <img src="weixinpay.jpg" alt="WeChat支払いコード" width="300"> 
+(フレンド申請は最長8時間以内に承認されます。メールアドレス 35252986@qq.com からも連絡可能です。)
+
+<img src="alipay.png" alt="Alipay QRコード" width="300">      <img src="weixinpay.jpg" alt="WeChat Pay QRコード" width="300"> 

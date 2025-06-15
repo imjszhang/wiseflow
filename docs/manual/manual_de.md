@@ -55,23 +55,18 @@ Sie können Informationsquellen sowohl auf der sources-Seite als auch auf der fo
 
 ### 📋 Projektquellcode herunterladen und uv sowie pocketbase installieren
 
-- für MacOS/Linux:
+**Windows-Benutzer laden bitte zuerst das Git Bash-Tool herunter und führen die folgenden Befehle in bash aus [Bash-Download-Link](https://git-scm.com/downloads/win)**
+
+### 📋 Projektquellcode herunterladen und uv sowie pocketbase installieren
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- für Windows:
+Die obigen Operationen vervollständigen die Installation von uv. 
 
-**Windows-Benutzer müssen zuerst Git Bash herunterladen und dann die folgenden Befehle in Bash ausführen [Bash-Download-Link](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-Diese Operationen installieren uv. Für die Installation von pocketbase siehe [pocketbase docs](https://pocketbase.io/docs/)
+Next, go to [pocketbase docs](https://pocketbase.io/docs/) to download the corresponding pocketbase program for your system and place it in the [.pb](./pb/) folder.
 
 Sie können auch versuchen, install_pocketbase.sh (für MacOS/Linux) oder install_pocketbase.ps1 (für Windows) zu verwenden.
 
@@ -89,26 +84,16 @@ Version 4.x erfordert keine PocketBase-Anmeldedaten in der .env-Datei und begren
 
 ### 🚀  Los geht's!
 
-- für MacOS/Linux:
-
 ```bash
 cd wiseflow
-uv venv # nur beim ersten Mal erforderlich
-uv sync # nur beim ersten Mal erforderlich
-python -m playwright install --with-deps chromium # nur beim ersten Mal erforderlich
-chmod +x run.sh # nur beim ersten Mal erforderlich
+uv venv # nur beim ersten Starten benötigt
+source .venv/bin/activate  # Linux/macOS
+# oder Windows:
+# .venv\Scripts\activate
+uv sync # nur beim ersten Starten benötigt
+python -m playwright install --with-deps chromium # nur beim ersten Starten benötigt
+chmod +x run.sh # nur beim ersten Starten benötigt
 ./run.sh
-```
-
-- für Windows:
-
-```bash
-cd wiseflow
-uv venv # nur beim ersten Mal erforderlich
-uv sync # nur beim ersten Mal erforderlich
-python -m playwright install --with-deps chromium # nur beim ersten Mal erforderlich
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # nur beim ersten Mal erforderlich
-.\run.ps1
 ```
 
 ✨ **So einfach ist das!** Das Startskript führt automatisch folgende Aufgaben aus:
@@ -263,11 +248,12 @@ Das Docker-Bereitstellungsschema für Version 4.x wird später folgen. Wir hoffe
 
 Open Source ist nicht einfach ☺️ Die Dokumentation und Beratung kostet viel Zeit. Wenn Sie bereit sind, Unterstützung zu leisten, bieten wir bessere Dienstleistungen an~
 
-- Detailliertes Tutorial-Video + 3 E-Mail-Beratungen: ￥12.88
-- Detailliertes Tutorial-Video + 3 E-Mail-Beratungen + Beitritt zur bezahlten Benutzergruppe: ￥19.88
+- Ausführliches Tutorial-Video + 3 E-Mail-Frage-Antwort-Runden + Beitritt zur WeChat-Gruppe für zahlende Benutzer: ¥36.88
 
-*Hinweis: In der bezahlten Benutzergruppe wird keine Beratung angeboten, sie dient nur dem Austausch von Produktanforderungen und Nutzungserfahrungen. Bei zukünftigen Iterationen werden die häufigen Anforderungen der bezahlten Benutzergruppe priorisiert, und Systemoptimierungen werden hauptsächlich für die Fälle in der bezahlten Benutzergruppe durchgeführt*
+*Hinweis: Die Gruppe für zahlende Benutzer bietet keinen Frage-Antwort-Service, sondern dient nur dem Austausch von Produktanforderungen und Nutzungserfahrungen. Zukünftige Iterationen werden die häufigsten Anforderungen aus der Gruppe der zahlenden Benutzer priorisieren, und die Systemoptimierung wird sich ebenfalls hauptsächlich auf die Fälle aus dieser Gruppe konzentrieren.*
 
-Zahlungsmethode: Scannen Sie den folgenden Zahlungscode und geben Sie Ihre E-Mail-Adresse im Kommentar an. Wir werden uns innerhalb von 24 Stunden mit Ihnen in Verbindung setzen und den Service bereitstellen.
+Zahlungsmethode: Scannen Sie den unten stehenden QR-Code, fügen Sie dann WeChat hinzu: bigbrother666sh, und senden Sie einen Screenshot der Zahlung.
 
-<img src="alipay.png" alt="Alipay Zahlungscode" width="300">      <img src="weixinpay.jpg" alt="WeChat Zahlungscode" width="300"> 
+(Freundschaftsanfragen werden innerhalb von 8 Stunden angenommen. Sie können uns auch per E-Mail unter 35252986@qq.com kontaktieren.)
+
+<img src="alipay.png" alt="Alipay QR-Code" width="300">      <img src="weixinpay.jpg" alt="WeChat Pay QR-Code" width="300"> 

@@ -53,23 +53,18 @@ Vous pouvez ajouter des sources d'information soit sur la page sources, soit sur
 
 **L'installation se fait en seulement trois étapes !**
 
-### 📋 Téléchargement du code source du projet et installation de uv et pocketbase
+**Les utilisateurs Windows doivent d'abord télécharger l'outil Git Bash et exécuter les commandes suivantes dans bash [Lien de téléchargement Bash](https://git-scm.com/downloads/win)**
 
-- pour MacOS/Linux :
+### 📋 Télécharger le code source du projet et installer uv et pocketbase
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- pour Windows :
+Les opérations ci-dessus complètent l'installation de uv. 
 
-**Les utilisateurs Windows doivent d'abord télécharger Git Bash, puis exécuter les commandes suivantes dans Bash [Lien de téléchargement de Bash](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
+Ensuite, téléchargez le programme pocketbase correspondant à votre système depuis [pocketbase docs](https://pocketbase.io/docs/) et placez-le dans le dossier [.pb](./pb/).
 
 Ces opérations installent uv. Pour l'installation de pocketbase, voir [pocketbase docs](https://pocketbase.io/docs/)
 
@@ -89,26 +84,16 @@ La version 4.x ne nécessite pas d'identifiants PocketBase dans le fichier .env 
 
 ### 🚀  C'est parti !
 
-- pour MacOS/Linux :
-
 ```bash
 cd wiseflow
-uv venv # requis uniquement la première fois
-uv sync # requis uniquement la première fois
-python -m playwright install --with-deps chromium # requis uniquement la première fois
-chmod +x run.sh # requis uniquement la première fois
+uv venv # nécessaire uniquement lors de la première exécution
+source .venv/bin/activate  # Linux/macOS
+# ou Windows :
+# .venv\Scripts\activate
+uv sync # nécessaire uniquement lors de la première exécution
+python -m playwright install --with-deps chromium # nécessaire uniquement lors de la première exécution
+chmod +x run.sh # nécessaire uniquement lors de la première exécution
 ./run.sh
-```
-
-- pour Windows :
-
-```bash
-cd wiseflow
-uv venv # requis uniquement la première fois
-uv sync # requis uniquement la première fois
-python -m playwright install --with-deps chromium # requis uniquement la première fois
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # requis uniquement la première fois
-.\run.ps1
 ```
 
 ✨ **C'est aussi simple que ça !** Le script de démarrage effectue automatiquement les tâches suivantes :
@@ -263,11 +248,12 @@ Le schéma de déploiement Docker pour la version 4.x suivra plus tard. Nous esp
 
 L'open source n'est pas facile ☺️ La documentation et les conseils prennent beaucoup de temps. Si vous êtes prêt à fournir un soutien, nous offrons de meilleurs services~
 
-- Vidéo tutorielle détaillée + 3 consultations par e-mail : ￥12.88
-- Vidéo tutorielle détaillée + 3 consultations par e-mail + adhésion au groupe d'utilisateurs payants : ￥19.88
+- Vidéo tutoriel détaillée + 3 sessions de questions-réponses par e-mail + adhésion au groupe WeChat des utilisateurs payants : 36,88 ¥
 
-*Note : Aucune consultation n'est offerte dans le groupe d'utilisateurs payants, il sert uniquement à l'échange d'exigences de produits et d'expériences d'utilisation. Dans les itérations futures, les exigences fréquentes du groupe d'utilisateurs payants seront prioritaires, et les optimisations du système seront principalement effectuées pour les cas dans le groupe d'utilisateurs payants*
+*Remarque : Le groupe d'utilisateurs payants ne fournit pas de service de questions-réponses, il sert uniquement à échanger sur les besoins du produit et les expériences d'utilisation. Les futures itérations donneront la priorité aux besoins fréquents du groupe d'utilisateurs payants, et l'optimisation du système se concentrera également principalement sur les cas de ce groupe.*
 
-Méthode de paiement : Scannez le code de paiement suivant et indiquez votre adresse e-mail dans le commentaire. Nous vous contacterons dans les 24 heures et fournirons le service.
+Mode de paiement : Scannez le code QR ci-dessous, puis ajoutez WeChat : bigbrother666sh, et fournissez une capture d'écran du paiement.
 
-<img src="alipay.png" alt="Code de paiement Alipay" width="300">      <img src="weixinpay.jpg" alt="Code de paiement WeChat" width="300"> 
+(Les demandes d'ami seront acceptées dans un délai de 8 heures. Vous pouvez également nous contacter par e-mail à 35252986@qq.com)
+
+<img src="alipay.png" alt="Code QR Alipay" width="300">      <img src="weixinpay.jpg" alt="Code QR WeChat Pay" width="300"> 

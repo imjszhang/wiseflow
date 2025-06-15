@@ -14,7 +14,10 @@ https://github.com/user-attachments/assets/2c52c010-6ae7-47f4-bc1c-5880c4bd76f3
 
 在长达三个月的等待后，我们终于迎来了 wiseflow 4.0 版本的正式发布！该版本带来了全新的 4.x 架构，引入了对社交媒体信源的支持，并带来了诸多新特性。
 
-4.x 内置 WIS Crawler（基于 Crawl4ai，MediaCrawler 和 Nodriver 深度重构整合），除网页外，还提供了对社交媒体信源的支持，4.0 版本先行提供对微博和快手的支持，后续计划陆续新增的平台包括：
+4.x 内置 WIS Crawler（基于 Crawl4ai，MediaCrawler 和 Nodriver 深度重构整合），除网页外，还提供了对社交媒体信源的支持。
+
+开源版本提供对微博和快手的支持，后续将通过 **pro 版本** 额外支持：
+
 微信公众号、小红书、抖音、b站、知乎……
 
 4.x 架构带来的其他新特性包括：
@@ -37,37 +40,31 @@ https://github.com/user-attachments/assets/2c52c010-6ae7-47f4-bc1c-5880c4bd76f3
 ## ✋ What makes wiseflow different from other ai-powered crawlers?
 
 - 全平台的获取能力，包括网页、社交媒体（目前提供对微博和快手平台的支持）、RSS 信源、搜索引擎等；
-- 不仅是抓取，而是自动分析和过滤，且仅需 14b 参数量的大模型即可很好的工作；
-- 面向普通用户（而非开发者），无需写代码，"开箱即用"；
+- 独特的 html 处理流程，自动按关注点提取信息并发现值得进一步探索的链接，且仅需 14b 参数量的大模型即可很好的工作；
+- 面向普通用户（而非开发者），无需人工介入提供 Xpath 等，"开箱即用"；
 - 持续迭代带来的高稳定性和高可用性，以及兼顾系统资源和速度的处理效率；
-- （未来）通过 insight 模块提供挖掘隐藏在已获取信息之下的"暗信息"的能力
+- 将不仅仅是“爬虫”……
 
-……… 同时期待感兴趣的开发者加入我们，共同打造人人可用的 AI 首席情报官！
+<img src="docs/wiseflow4.xscope.png" alt="4.x full scope" width="720">
 
+(4.x 架构整体规划图。虚线框内为尚未完成的部分，希望有能力的社区开发者加入我们，贡献 PR。 所有contributor都将免费获赠 pro 版本的使用权！)
 
 ## 🌟 快速开始
 
 **只需三步即可开始使用！**
 
-### 📋 下载项目源代码并安装 uv 和 pocketbase
+**windows 用户请提前下载 git bash 工具，并在 bash 中执行如下命令 [bash下载链接](https://git-scm.com/downloads/win)**
 
-- for MacOS/Linux:
+### 📋 下载项目源代码并安装 uv 和 pocketbase
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
 git clone https://github.com/TeamWiseFlow/wiseflow.git
 ```
 
-- for Windows:
+上述操作会完成 uv 的安装。
 
-**windows 用户请提前下载 git bash 工具，并在 bash 中执行如下命令 [bash下载链接](https://git-scm.com/downloads/win)**
-
-```bash
-powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
-git clone https://github.com/TeamWiseFlow/wiseflow.git
-```
-
-上述操作会完成 uv 的安装，pocketbase 的安装请参考 [pocketbase docs](https://pocketbase.io/docs/)
+接下来去 [pocketbase docs](https://pocketbase.io/docs/) 下载对应自己系统的 pocketbase 程序放置于 [.pb](./pb/) 文件夹下
 
 也可以尝试使用 install_pocketbase.sh (for MacOS/Linux) 或 install_pocketbase.ps1 (for Windows) 来安装。
 
@@ -80,30 +77,21 @@ git clone https://github.com/TeamWiseFlow/wiseflow.git
 - LLM_API_KEY="" # LLM 服务的 key （任何提供 OpenAI 格式 API 的模型服务商均可，本地使用 ollama 部署则无需设置）
 - LLM_API_BASE="https://api.siliconflow.cn/v1" # LLM 服务接口地址
 - JINA_API_KEY="" # 搜索引擎服务的 key （推荐 Jina，个人使用甚至无需注册即可申请）
-- PRIMARY_MODEL="Qwen3-14B" # 推荐 Qwen3-14B 或同量级思考模型
+- PRIMARY_MODEL=Qwen/Qwen3-14B # 推荐 Qwen3-14B 或同量级思考模型
+- VL_MODEL=Pro/Qwen/Qwen2.5-VL-7B-Instruct # better to have
 
 ### 🚀  起飞！
-
-- for MacOS/Linux:
 
 ```bash
 cd wiseflow
 uv venv # 仅第一次执行需要
+source .venv/bin/activate  # Linux/macOS
+# 或者在 Windows 上：
+# .venv\Scripts\activate
 uv sync # 仅第一次执行需要
 python -m playwright install --with-deps chromium # 仅第一次执行需要
 chmod +x run.sh # 仅第一次执行需要
 ./run.sh
-```
-
-- for Windows:
-
-```bash
-cd wiseflow
-uv venv # 仅第一次执行需要
-uv sync # 仅第一次执行需要
-python -m playwright install --with-deps chromium # 仅第一次执行需要
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser # 仅第一次执行需要
-.\run.ps1
 ```
 
 详细使用教程请参考 [docs/manual/manual.md](./docs/manual/manual.md)
