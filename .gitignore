@@ -13,3 +13,4 @@ test/webpage_samples/
 /docker
 pb/pocketbase.exe
 work_dir_for_test
+pb/pb_migrations/1750399634_created_clients.js

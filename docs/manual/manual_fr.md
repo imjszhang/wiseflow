@@ -2,6 +2,8 @@
 
 **Les utilisateurs de la version 3.x doivent supprimer complètement le dépôt original et le dossier pb, puis cloner à nouveau le dépôt 4.x, sinon le programme ne pourra pas démarrer normalement.**
 
+**Les utilisateurs de la version 4.0 qui souhaitent mettre à niveau vers la version 4.1, après avoir tiré le dernier code, doivent d'abord exécuter la commande ./pb/pocketbase migrate, sinon le programme ne pourra pas démarrer normalement.**
+
 ## 📋 Configuration système requise
 
 - **Python**: 3.10 - 3.12 (3.12 recommandé)
@@ -28,8 +30,14 @@ Description des champs :
 - explanation (optionnel), explications pour des concepts spéciaux ou des termes techniques, pour éviter les malentendus, par exemple "La transition du primaire au collège signifie le passage de l'école primaire au collège"
 - activated, si activé. Si désactivé, ce point de focus sera ignoré, mais pourra être réactivé plus tard
 - freq, fréquence de crawling en heures, en nombre entier (nous recommandons de ne pas dépasser une fois par jour, c'est-à-dire 24, le minimum est 2, c'est-à-dire toutes les 2 heures)
-- search, si le moteur de recherche doit être activé à chaque crawl et si la recherche doit être effectuée via les réseaux sociaux configurés
+- search, configurer des sources de recherche détaillées, prend actuellement en charge bing, github, arxiv et ebay
 - sources, sélection des sources d'information correspondantes
+
+#### 💡 La manière dont vous rédigez le point de mire est très importante, car elle détermine directement si l'extraction d'informations peut répondre à vos exigences. Spécifiquement :
+
+  - Si votre cas d'utilisation est le suivi d'informations sectorielles, d'informations académiques, d'informations sur les politiques, etc., et que vos sources d'information incluent des recherches larges, le point de mire doit utiliser un modèle de mots-clés similaire à un moteur de recherche. En même temps, vous devez ajouter des contraintes et des explications, et si nécessaire, définir des rôles et des objectifs.
+
+  - Si votre cas d'utilisation est le suivi de concurrents, les vérifications d'antécédents, etc., où les sources d'information sont très spécifiques, telles que les pages d'accueil des concurrents, les comptes officiels, etc., il vous suffit de saisir votre perspective d'intérêt comme point de mire, par exemple "informations sur les baisses de prix", "informations sur les nouveaux produits", etc.
 
 **Les modifications de la configuration focus_point ne nécessitent pas de redémarrage du programme et prendront effet automatiquement lors de la prochaine exécution.**
 
@@ -77,9 +85,8 @@ Dans le dossier wiseflow (répertoire racine du projet), créez un fichier .env 
 La version 4.x ne nécessite pas d'identifiants PocketBase dans le fichier .env et ne limite pas non plus la version de PocketBase. De plus, nous avons temporairement supprimé le paramètre Secondary Model. Vous n'avez donc besoin que de quatre paramètres minimum :
 
 - LLM_API_KEY="" # Clé de service LLM (tout fournisseur avec un format d'API compatible OpenAI est approprié, non requis pour l'utilisation locale d'ollama)
-- LLM_API_BASE="https://api.siliconflow.com/v1" # Interface de service LLM
-- JINA_API_KEY="" # Clé de service de moteur de recherche (Jina recommandé, disponible même sans inscription pour un usage personnel)
-- PRIMARY_MODEL="Qwen3-14B" # Qwen3-14B ou modèle de réflexion similaire recommandé
+- LLM_API_BASE="" # Adresse de l'interface du service LLM (si nécessaire. Pour les utilisateurs OpenAI, laissez-le vide)
+- PRIMARY_MODEL=Qwen/Qwen3-14B # Recommandé Qwen3-14B ou un modèle de réflexion de niveau équivalent
 - VL_MODEL="Pro/Qwen/Qwen2.5-VL-7B-Instruct" # Modèle visuel, optionnel mais recommandé. Utilisé pour analyser les images de page nécessaires (le programme décide en fonction du contexte si une analyse est nécessaire, pas chaque image n'est extraite), minimum Qwen2.5-VL-7B-Instruct requis
 
 ### 🚀  C'est parti !
@@ -186,8 +193,8 @@ SiliconFlow propose des services MaaS pour la plupart des modèles open source c
 
 ```
 LLM_API_KEY=Votre_clé_API
-LLM_API_BASE="https://api.siliconflow.com/v1"
-PRIMARY_MODEL="Qwen3-14B"
+LLM_API_BASE="https://api.siliconflow.com/v1" # Adresse de l'interface du service LLM (si nécessaire. Pour les utilisateurs OpenAI, laissez-le vide)
+PRIMARY_MODEL=Qwen/Qwen3-14B # Recommandé Qwen3-14B ou un modèle de réflexion de niveau équivalent
 VL_MODEL="Pro/Qwen/Qwen2.5-VL-7B-Instruct"
 CONCURRENT_NUMBER=8
 ```
@@ -221,15 +228,7 @@ VL_MODEL=ID_du_modèle_démarré
 CONCURRENT_NUMBER=1 # basé sur les ressources matérielles réelles
 ```
 
-#### 3. Configuration de JINA_API_KEY (pour le service de moteur de recherche)
-
-Disponible sur https://jina.ai/, actuellement disponible sans inscription. (Pour une utilisation à haut débit ou commerciale, veuillez utiliser après recharge)
-
-```
-JINA_API_KEY=Votre_clé_API
-```
-
-#### 4. Autres configurations optionnelles
+#### 3. Autres configurations optionnelles
 
 Les suivantes sont des configurations optionnelles :
 - #VERBOSE="true" 
@@ -249,8 +248,6 @@ Le schéma de déploiement Docker pour la version 4.x suivra plus tard. Nous esp
 L'open source n'est pas facile ☺️ La documentation et les conseils prennent beaucoup de temps. Si vous êtes prêt à fournir un soutien, nous offrons de meilleurs services~
 
 - Vidéo tutoriel détaillée + 3 sessions de questions-réponses par e-mail + adhésion au groupe WeChat des utilisateurs payants : 36,88 ¥
-
-*Remarque : Le groupe d'utilisateurs payants ne fournit pas de service de questions-réponses, il sert uniquement à échanger sur les besoins du produit et les expériences d'utilisation. Les futures itérations donneront la priorité aux besoins fréquents du groupe d'utilisateurs payants, et l'optimisation du système se concentrera également principalement sur les cas de ce groupe.*
 
 Mode de paiement : Scannez le code QR ci-dessous, puis ajoutez WeChat : bigbrother666sh, et fournissez une capture d'écran du paiement.
 

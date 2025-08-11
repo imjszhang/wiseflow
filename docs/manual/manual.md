@@ -2,6 +2,8 @@
 
 **3.x 用户需要完全删除原代码仓和 pb 文件夹，并重新克隆 4.x 代码仓，否则无法正常启动。**
 
+**4.0 用户升级4.1版本，拉取最新代码后，先执行一下 ./pb/pocketbase migrate 命令，否则无法正常启动。**
+
 ## 📋 系统要求
 
 - **Python**: 3.10 - 3.12 （推荐 3.12）
@@ -28,8 +30,14 @@ wiseflow4.x 用户操作界面使用 pocketbase （虽然我不喜欢，但暂�
 - explanation（可选），对于一些特殊概念或者专业术语的解释，避免大模型误解，比如“小升初是指小学升初中”
 - activated, 是否激活。如果关闭则会忽略该关注点，关闭后可再次开启
 - freq, 爬取频率，单位为小时，类型为整数（我们建议扫描频次不要超过一天一次，即设定为24，最小值为2，即每2小时抓取一次）
-- search, 每次爬取是否开启搜索引擎，以及是否通过配置的社交媒体进行搜索
+- search, 配置详细的搜索源，目前支持 bing、github、arxiv 和 ebay。
 - sources，选择对应的信源
+
+#### 💡 关注点的写法非常重要，直接决定了信息提取是否能够达到您的要求，具体而言：
+
+  - 如果您的使用场景是行业信息、学术信息、政策信息追踪等，并且您的信源中包含了广泛的搜索，那么关注点应该使用类似搜索引擎的关键词模式，同时在限制和解释中进行约束，并在必要的情况下设定角色和目的；
+
+  - 如果您的使用场景是竞争对手跟踪、背景调查等，信源非常具体，比如多为竞争对手主页、官方账号等，那么关注点只需填入您的关注角度，比如“降价信息”、“新产品信息”等；
 
 **focus_point 配置的调整无需重启程序，会在下一次执行时自动生效。** 
 
@@ -75,9 +83,8 @@ git clone https://github.com/TeamWiseFlow/wiseflow.git
 4.x 版本无需用户在.env 中提供 pocketbase 的账密，也不限定 pocketbase 的版本, 同时我们也暂时取消了 Secondary Model 的设定, 因此你其实最少仅需四个参数即可完成配置：
 
 - LLM_API_KEY="" # LLM 服务的 key （任何提供 OpenAI 格式 API 的模型服务商均可，本地使用 ollama 部署则无需设置）
-- LLM_API_BASE="https://api.siliconflow.cn/v1" # LLM 服务接口地址
-- JINA_API_KEY="" # 搜索引擎服务的 key （推荐 Jina，个人使用甚至无需注册即可申请）
-- PRIMARY_MODEL="Qwen3-14B" # 推荐 Qwen3-14B 或同量级思考模型
+- LLM_API_BASE="" # LLM 服务接口地址（中国大陆地区用户推荐使用siliconflow，其他地区用户请留空）
+- PRIMARY_MODEL="Qwen/Qwen3-14B" # 推荐 Qwen3-14B 或同量级思考模型
 - VL_MODEL="Pro/Qwen/Qwen2.5-VL-7B-Instruct" # 视觉模型，可选但最好有。用于分析必要的页面图片（程序会根据上下判定是否有必要分析，不会每张图都提取一次），最低使用Qwen2.5-VL-7B-Instruct即可
 
 ### 🚀  起飞！
@@ -186,7 +193,7 @@ siliconflow（硅基流动）提供大部分主流开源模型的在线 MaaS 服
 ```
 LLM_API_KEY=Your_API_KEY
 LLM_API_BASE="https://api.siliconflow.cn/v1"
-PRIMARY_MODEL="Qwen3-14B"
+PRIMARY_MODEL=Qwen/Qwen3-14B
 VL_MODEL="Pro/Qwen/Qwen2.5-VL-7B-Instruct"
 CONCURRENT_NUMBER=8
 ```
@@ -195,7 +202,6 @@ CONCURRENT_NUMBER=8
 
 ##### 推荐2：使用 AiHubMix 代理的openai、claude、gemini 等海外闭源商业模型服务
 
-如果您的信源多为非中文页面，且也不要求提取出的 info 为中文，那么更推荐您使用 openai、claude、gemini 等海外闭源商业模型。您可以尝试第三方代理 **AiHubMix**，支持国内网络环境直连、支付宝便捷支付，免去封号风险。
 使用 AiHubMix 的模型时，.env的配置可以参考如下：
 
 ```
@@ -220,15 +226,7 @@ VL_MODEL=启动的模型 ID
 CONCURRENT_NUMBER=1 # 根据实际硬件资源决定
 ```
 
-#### 3. JINA_API_KEY 设置（用于搜索引擎服务）
-
-至 https://jina.ai/ 领取，目前无需注册即可领取。（如有高并发或商用需求，请充值后使用）
-
-```
-JINA_API_KEY=Your_API_KEY
-```
-
-#### 4. 其他可选配置
+#### 3. 其他可选配置
 
 下面的都是可选配置：
 - #VERBOSE="true" 
@@ -248,9 +246,7 @@ JINA_API_KEY=Your_API_KEY
 
 开源不易 ☺️ 文档书写和咨询答疑更是耗费时间，如果您愿意提供支持，我们将提供更优质的服务~
 
-- 详细教程视频 + 3次邮件答疑 + 加入付费用户微信群： ￥36.88
-
-*注：付费用户群内不提供答疑服务，仅供交流产品需求和使用心得，后续迭代中会优先考虑付费用户群中的高频需求，系统优化也将主要针对付费用户群中的案例*
+- 详细教程视频 + 3次邮件答疑 + 加入付费用户微信群（作者本人在群内）： ￥36.88
 
 购买方式：扫描如下付款码，然后添加微信: bigbrother666sh，并提供付款截图。
 
